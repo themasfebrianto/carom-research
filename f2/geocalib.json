@@ -1,0 +1,58 @@
+[
+ {
+  "image": "f2/median.png",
+  "f_px": 606.5,
+  "hfov_deg": 43.18,
+  "pitch_deg": -11.74,
+  "roll_deg": 0.17,
+  "horizon_row": 306.1,
+  "f_tan_pitch": -126.1,
+  "gravity_vec": [
+   -0.0029,
+   -0.9791,
+   -0.2035
+  ]
+ },
+ {
+  "image": "f2/t514.jpg",
+  "f_px": 622.4,
+  "hfov_deg": 42.17,
+  "pitch_deg": -12.6,
+  "roll_deg": 0.26,
+  "horizon_row": 319.1,
+  "f_tan_pitch": -139.1,
+  "gravity_vec": [
+   -0.0044,
+   -0.9759,
+   -0.2182
+  ]
+ },
+ {
+  "image": "f2/t94.jpg",
+  "f_px": 652.6,
+  "hfov_deg": 40.39,
+  "pitch_deg": -12.09,
+  "roll_deg": 0.39,
+  "horizon_row": 319.8,
+  "f_tan_pitch": -139.8,
+  "gravity_vec": [
+   -0.0066,
+   -0.9778,
+   -0.2095
+  ]
+ },
+ {
+  "image": "f2/t406.jpg",
+  "f_px": 583.8,
+  "hfov_deg": 44.7,
+  "pitch_deg": -12.08,
+  "roll_deg": 0.14,
+  "horizon_row": 304.9,
+  "f_tan_pitch": -124.9,
+  "gravity_vec": [
+   -0.0024,
+   -0.9779,
+   -0.2092
+  ]
+ }
+]
