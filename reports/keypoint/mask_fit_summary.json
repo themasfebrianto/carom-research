@@ -1,0 +1,14 @@
+{
+  "gt": 21,
+  "fit": 21,
+  "mape_pct": {
+    "mean": 12.19,
+    "median": 11.93
+  },
+  "eL_pct": 21.92,
+  "eW_pct": 7.11,
+  "eH_pct": 7.55,
+  "mask_iou_mean": 0.796,
+  "Car_mape_pct": 12.86,
+  "Bus_mape_pct": 11.3
+}

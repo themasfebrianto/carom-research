@@ -1,0 +1,57 @@
+[
+  {
+    "image": "data\\svld\\TESTDATA2021\\TESTDATA2021\\JPEGImages\\real_scene_cam0_004450.jpg",
+    "width": 1280,
+    "height": 720,
+    "f_px": 1836.405,
+    "hfov_deg": 38.428,
+    "vfov_deg": 22.183,
+    "pitch_deg": -9.8356,
+    "roll_deg": 0.2196,
+    "horizon_row": 678.376
+  },
+  {
+    "image": "data\\svld\\TESTDATA2021\\TESTDATA2021\\JPEGImages\\real_scene_cam1_004010.jpg",
+    "width": 1280,
+    "height": 720,
+    "f_px": 1023.548,
+    "hfov_deg": 64.033,
+    "vfov_deg": 38.755,
+    "pitch_deg": -14.1809,
+    "roll_deg": -1.2793,
+    "horizon_row": 618.635
+  },
+  {
+    "image": "data\\svld\\TESTDATA2021\\TESTDATA2021\\JPEGImages\\session0_center_004085.jpg",
+    "width": 1920,
+    "height": 1080,
+    "f_px": 2816.607,
+    "hfov_deg": 37.642,
+    "vfov_deg": 21.706,
+    "pitch_deg": -8.7753,
+    "roll_deg": -4.7217,
+    "horizon_row": 974.79
+  },
+  {
+    "image": "data\\svld\\TESTDATA2021\\TESTDATA2021\\JPEGImages\\session0_right_006645.jpg",
+    "width": 1920,
+    "height": 1080,
+    "f_px": 3348.826,
+    "hfov_deg": 31.992,
+    "vfov_deg": 18.32,
+    "pitch_deg": -9.8188,
+    "roll_deg": -2.0916,
+    "horizon_row": 1119.573
+  },
+  {
+    "image": "data\\svld\\TESTDATA2021\\TESTDATA2021\\JPEGImages\\session6_right_008230.jpg",
+    "width": 1920,
+    "height": 1080,
+    "f_px": 2420.918,
+    "hfov_deg": 43.261,
+    "vfov_deg": 25.149,
+    "pitch_deg": -20.0601,
+    "roll_deg": -2.3781,
+    "horizon_row": 1424.018
+  }
+]

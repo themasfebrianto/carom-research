@@ -1,0 +1,179 @@
+{
+  "annotations": 2237,
+  "objects": 8142,
+  "images_with_objects": 2237,
+  "resolutions": {
+    "1280x720": 5461,
+    "1920x1080": 2681
+  },
+  "calib_files": [
+    "0cam_ManualCamCalibResult.xml",
+    "1cam_ManualCamCalibResult.xml",
+    "session0_centre_calibParams.xml",
+    "session0_right_calibParams.xml",
+    "session6_right_calibParams.xml"
+  ],
+  "classes": {
+    "Car": 7396,
+    "Bus": 745,
+    "Truck": 1
+  },
+  "class_stats": {
+    "Bus": {
+      "objects": 745,
+      "L_m": {
+        "n": 745,
+        "mean": 11.064,
+        "std": 1.2273,
+        "min": 9.46,
+        "max": 12.6
+      },
+      "W_m": {
+        "n": 745,
+        "mean": 2.6899,
+        "std": 0.0917,
+        "min": 2.57,
+        "max": 2.76
+      },
+      "H_m": {
+        "n": 745,
+        "mean": 2.8461,
+        "std": 0.034,
+        "min": 2.8,
+        "max": 2.92
+      },
+      "calib_f_px": {
+        "n": 745,
+        "mean": 2493.6562,
+        "std": 1299.7766,
+        "min": 1142.26,
+        "max": 3743.7849
+      },
+      "calib_h_m": {
+        "n": 745,
+        "mean": 7.2636,
+        "std": 0.0934,
+        "min": 7.1664,
+        "max": 7.3534
+      },
+      "calib_pitch_deg": {
+        "n": 745,
+        "mean": 12.5289,
+        "std": 6.3398,
+        "min": 6.4312,
+        "max": 19.1205
+      },
+      "calib_yaw_deg": {
+        "n": 745,
+        "mean": 1.7244,
+        "std": 6.27,
+        "min": -4.3061,
+        "max": 8.2434
+      }
+    },
+    "Car": {
+      "objects": 7396,
+      "L_m": {
+        "n": 7396,
+        "mean": 4.4378,
+        "std": 0.4576,
+        "min": 3.08,
+        "max": 6.52
+      },
+      "W_m": {
+        "n": 7396,
+        "mean": 1.7848,
+        "std": 0.0932,
+        "min": 1.25,
+        "max": 2.12
+      },
+      "H_m": {
+        "n": 7396,
+        "mean": 1.4804,
+        "std": 0.101,
+        "min": 1.19,
+        "max": 2.05
+      },
+      "calib_f_px": {
+        "n": 7396,
+        "mean": 3076.7059,
+        "std": 1068.9542,
+        "min": 1142.26,
+        "max": 3994.1682
+      },
+      "calib_h_m": {
+        "n": 7396,
+        "mean": 7.8371,
+        "std": 0.9337,
+        "min": 7.1664,
+        "max": 10.1191
+      },
+      "calib_pitch_deg": {
+        "n": 7396,
+        "mean": 10.7812,
+        "std": 5.0112,
+        "min": 6.4312,
+        "max": 19.1205
+      },
+      "calib_yaw_deg": {
+        "n": 7396,
+        "mean": 1.0524,
+        "std": 8.2648,
+        "min": -14.2487,
+        "max": 15.2432
+      }
+    },
+    "Truck": {
+      "objects": 1,
+      "L_m": {
+        "n": 1,
+        "mean": 6.52,
+        "std": 0.0,
+        "min": 6.52,
+        "max": 6.52
+      },
+      "W_m": {
+        "n": 1,
+        "mean": 1.7,
+        "std": 0.0,
+        "min": 1.7,
+        "max": 1.7
+      },
+      "H_m": {
+        "n": 1,
+        "mean": 1.34,
+        "std": 0.0,
+        "min": 1.34,
+        "max": 1.34
+      },
+      "calib_f_px": {
+        "n": 1,
+        "mean": 3994.1682,
+        "std": 0.0,
+        "min": 3994.1682,
+        "max": 3994.1682
+      },
+      "calib_h_m": {
+        "n": 1,
+        "mean": 8.071,
+        "std": 0.0,
+        "min": 8.071,
+        "max": 8.071
+      },
+      "calib_pitch_deg": {
+        "n": 1,
+        "mean": 9.0054,
+        "std": 0.0,
+        "min": 9.0054,
+        "max": 9.0054
+      },
+      "calib_yaw_deg": {
+        "n": 1,
+        "mean": 2.0252,
+        "std": 0.0,
+        "min": 2.0252,
+        "max": 2.0252
+      }
+    }
+  }
+}

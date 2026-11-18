@@ -14,9 +14,12 @@ Kajian adaptasi metode CAROM Air (drone) untuk pengukuran dimensi kendaraan dari
 | `SOP-KALIBRASI-CCTV.md` | Prosedur operasional kalibrasi, berlaku umum untuk CCTV mana pun |
 | `SOP-PENGUKURAN-DIMENSI-KENDARAAN.md` | Prosedur operasional pengukuran dimensi kendaraan |
 | `PAPER-REPO-Untuk-Menutup-Kelemahan.md` | Peta paper/repo untuk menutup kelemahan: ground truth I24-3D/SVLD-3D, pipeline SKoPe3D/OpenPifPaf/GSNet, kalibrasi naver/cctv, skala MoGe-2 |
+| `PLAN-PENUTUPAN-KELEMAHAN.md` | Rencana penutupan kelemahan per fase: gerbang lulus/gagal, langkah, dan status |
 | `VALIDASI-PROTOCOL.md` | Protokol dan ambang validasi eksternal |
 | `HASIL-VALIDASI-SVLD.md` | Sintesis validasi SVLD-3D: kalibrasi, geometri, sensitivitas, keypoint, mask; putusan W/H vs L |
-| `HASIL-TIMEPASS-CAWANG.md` | Side-view/lower-envelope di Cawang: truk 40 ft 14,0–14,3 m; batch 6 kendaraan 6,4–17,4 m; proof of concept |
+| `HASIL-TIMEPASS-CAWANG.md` | Side-view/lower-envelope di Cawang: truk 40 ft 14,0–14,3 m; batch 6 kendaraan 6,4–17,4 m; validasi 20 ft 6,046 m |
+| `reports/README.md` | Indeks artefak validasi (MD/JSON/CSV) yang disalin dari `out/` |
+| `reports/external-setup.md` | Cara membuat environment GeoCalib, YOLO, dan Grounded SAM 2 |
 
 ## Temuan pokok
 
@@ -36,7 +39,7 @@ GeoCalib adalah alat kalibrasi utama: ia memberi $f$ dan pitch, lalu vanishing p
 
 ## Skrip
 
-Skrip teori memakai Node.js dan `ffmpeg`. Validasi eksternal memakai Python; lihat `scripts/README.md` untuk environment dan urutan pakai.
+Skrip teori memakai Node.js dan `ffmpeg`. Validasi eksternal memakai Python; lihat `scripts/README.md` untuk environment dan urutan pakai. Artefak hasil validasi ada di `reports/`; environment dan bobot model tidak disertakan — cara membangunnya ada di `reports/external-setup.md`.
 
 ### Validasi eksternal
 

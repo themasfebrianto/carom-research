@@ -1,0 +1,3 @@
+image,camera,f_geo,f_gt,df_over_f,pitch_geo,pitch_gt,d_pitch_deg,status,note
+scene1_p1c1_010.png,p1c1,624.163,624.163,0.0,11.483,11.483,0.0,PASS,
+scene1_p1c2_030.png,p1c2,622.801,622.801,0.0,12.496,12.496,0.0,PASS,

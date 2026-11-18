@@ -7,8 +7,12 @@ Semua skrip di folder ini adalah alat Fase 1–2, bukan pipeline produksi.
 | Kebutuhan | Env |
 |---|---|
 | GeoCalib, torch CPU | `C:\Users\omega\AppData\Local\Temp\opencode\geoenv` |
-| parsing, metrik, plot | `C:\Users\omega\AppData\Local\Temp\opencode\cctv-eval` |
+| parsing, metrik, plot, fitting | `C:\Users\omega\AppData\Local\Temp\opencode\cctv-eval` |
+| YOLO-seg / YOLO-pose | `C:\Users\omega\AppData\Local\Temp\opencode\vehicle-kp` |
+| Grounding DINO + SAM 2 | `C:\Users\omega\AppData\Local\Temp\opencode\grounded-sam2` |
 | ffmpeg | sistem |
+
+Cara membuat ulang environment dan mengunduh bobot: `reports/external-setup.md`.
 
 ## Urutan pakai
 
@@ -150,6 +154,34 @@ Model `vehicle-keypoints` tidak siap untuk bus; zero-shot tidak cukup.
 
 Hasil 21 objek: MAPE 12,19%; W 7,11%, H 7,55%, L 21,92%; mask IoU 0,796.
 W/H layak screening; panjang belum. Mask body tidak memuat kontak ban.
+
+### 13. Segmentasi kontainer-only
+
+Grounded SAM 2 dengan box prompt yang hanya mencakup kontainer. Prompt teks saja (`"shipping container."`) mendeteksi box yang ikut mencakup kabin; karena itu box prompt manual dipakai bila kabin harus dipisahkan.
+
+```powershell
+& "C:\Users\omega\AppData\Local\Temp\opencode\grounded-sam2\Scripts\python.exe" `
+  scripts\grounded_sam2_container.py `
+  --image out\timepass\t247.jpg --box "255,475,405,645" --out out\timepass\gsam2_20ft
+```
+
+Keluaran: `container_mask_0.npy`, `container_mask_0.png`, `grounded_sam2_container.jpg`.
+Mask 20 ft TEMA: 21.907 px; 0 piksel hijau (kabin) di dalam mask.
+
+### 14. Fit 3D box ke kontainer
+
+Tinggi kontainer dipaku ke standar ISO: 2,591 m (standar) atau 2,896 m (high cube).
+
+```powershell
+& "C:\Users\omega\AppData\Local\Temp\opencode\cctv-eval\Scripts\python.exe" `
+  scripts\cawang_container_fit.py `
+  --image out\timepass\t247.jpg `
+  --mask out\timepass\gsam2_20ft\container_mask_0.npy `
+  --box "230,450,430,680" --height 2.591 --out out\timepass\container20
+```
+
+Keluaran: `container_fit.json` dan `container_fit_overlay.jpg`.
+Hasil 20 ft TEMA: $L=6{,}046$ m vs 6,058 m (−0,2%), $W=2{,}437$ m, IoU 0,972.
 
 ## Catatan teknis
 

@@ -1,0 +1,24 @@
+[
+  {
+    "image": "f2\\median.png",
+    "width": 480,
+    "height": 360,
+    "f_px": 624.163,
+    "hfov_deg": 42.065,
+    "vfov_deg": 32.174,
+    "pitch_deg": -11.483,
+    "roll_deg": 0.2203,
+    "horizon_row": 306.794
+  },
+  {
+    "image": "f2\\t514.jpg",
+    "width": 480,
+    "height": 360,
+    "f_px": 622.801,
+    "hfov_deg": 42.149,
+    "vfov_deg": 32.24,
+    "pitch_deg": -12.4956,
+    "roll_deg": 0.1181,
+    "horizon_row": 318.021
+  }
+]

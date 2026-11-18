@@ -302,11 +302,14 @@ Grounding DINO tiny + SAM 2.1 tiny.
 | `KALIBRASI-CCTV-CAWANG-REV2.md` | kalibrasi Cawang yang berlaku |
 | `AUDIT-16-15-44.md` | studi kasus rekaman tidak layak |
 | `PAPER-REPO-Untuk-Menutup-Kelemahan.md` | peta paper/repo |
+| `PLAN-PENUTUPAN-KELEMAHAN.md` | rencana penutupan kelemahan per fase |
 | `VALIDASI-PROTOCOL.md` | protokol dan ambang |
 | `HASIL-VALIDASI-SVLD.md` | sintesis SVLD |
 | `HASIL-TIMEPASS-CAWANG.md` | side-view, 20 ft, 40 ft |
 | `CATATAN-RISET-LENGKAP.md` | dokumen ini |
-| `scripts/` | 15 skrip validasi (lihat `scripts/README.md`) |
+| `reports/` | artefak validasi (lihat `reports/README.md`) |
+| `reports/external-setup.md` | environment GeoCalib, YOLO, Grounded SAM 2 |
+| `scripts/` | 14 skrip validasi (lihat `scripts/README.md`) |
 
 Skrip penting:
 
