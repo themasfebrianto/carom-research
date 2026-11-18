@@ -144,6 +144,12 @@ Implikasi:
 - `scripts/cawang_timepass.py`
 - `scripts/grounded_sam2_container.py`
 - `scripts/cawang_container_fit.py`
+- `clips/cawang_032_kandidat.mp4`
+- `clips/cawang_086_sinkor.mp4`
+- `clips/cawang_247_20ft-tema.mp4`
+- `clips/cawang_431_truk-panjang.mp4`
+- `clips/cawang_567_truk-panjang.mp4`
+- `clips/cawang_578_40ft.mp4`
 - `out/timepass/lower/timepass_bus.csv`
 - `out/timepass/cand2_*/timepass_bus.csv`
 - `out/timepass/gsam2_20ft/container_mask_0.npy`

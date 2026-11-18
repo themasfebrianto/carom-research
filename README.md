@@ -93,8 +93,22 @@ Berkas `marks.mjs`, `blobs.mjs`, `dashes.mjs`, `dash2.mjs`, `lines.mjs`, `lines2
 | `frames/truck2.png` | Crop objek acuan dengan grid |
 | `frames/*.json` | Hasil deteksi dan parameter |
 
+## Klip bukti
+
+| Berkas | Isi |
+|---|---|
+| `clips/cawang_032_kandidat.mp4` | Kandidat 20 ft / box truck, t=32 |
+| `clips/cawang_086_sinkor.mp4` | Truk SINKOR, kontainer 40/45 ft, t=86 |
+| `clips/cawang_247_20ft-tema.mp4` | Kontainer 20 ft TEMA, t=247 |
+| `clips/cawang_431_truk-panjang.mp4` | Truk panjang, t=431 |
+| `clips/cawang_567_truk-panjang.mp4` | Truk panjang, t=567 |
+| `clips/cawang_578_40ft.mp4` | Kontainer 40 ft, t=578 |
+| `clips/audit_16-15-44_full-480p.mp4` | Substream 480×360 utuh untuk audit |
+
+Klip utama dipotong dengan `-c copy`, tanpa re-encode. Indeks, ukuran, dan checksum ada di `clips/README.md`.
+
 ## Catatan
 
-Berkas video sumber (`recording cawang.mp4`, 179 MB) **tidak** disertakan dalam repositori. Ukurannya melampaui batas praktis git, dan rekaman berisi citra lalu lintas yang dapat diidentifikasi.
+Video sumber penuh (`recording cawang.mp4`, 179 MB) **tidak** disertakan. Sebagai gantinya, `clips/` memuat segmen bukti tanpa re-encode (7,2 MB) dan substream audit utuh (8,2 MB). Rekaman berisi citra lalu lintas yang dapat diidentifikasi, jadi jaga repo tetap privat atau batasi aksesnya.
 
 Seluruh angka dapat direproduksi dari video tersebut dengan perintah pada lampiran `KALIBRASI-CCTV-CAWANG-REV2.md`.

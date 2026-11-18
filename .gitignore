@@ -4,6 +4,10 @@
 *.avi
 *.mov
 
+# Klip bukti riset: dipotong tanpa re-encode
+!clips/
+!clips/*.mp4
+
 # Intermediate pemrosesan (dapat diregenerasi dari video)
 frames/*.ppm
 frames/tm*.png

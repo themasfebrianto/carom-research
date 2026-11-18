@@ -309,6 +309,7 @@ Grounding DINO tiny + SAM 2.1 tiny.
 | `CATATAN-RISET-LENGKAP.md` | dokumen ini |
 | `reports/` | artefak validasi (lihat `reports/README.md`) |
 | `reports/external-setup.md` | environment GeoCalib, YOLO, Grounded SAM 2 |
+| `clips/` | klip bukti video tanpa re-encode (lihat `clips/README.md`) |
 | `scripts/` | 14 skrip validasi (lihat `scripts/README.md`) |
 
 Skrip penting:
