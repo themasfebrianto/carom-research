@@ -6,6 +6,7 @@ Kajian adaptasi metode CAROM Air (drone) untuk pengukuran dimensi kendaraan dari
 
 | Berkas | Isi |
 |---|---|
+| `CATATAN-RISET-LENGKAP.md` | **Ringkasan master**: temuan penting, hasil riset, kesalahan/koreksi, kendala, pertanyaan terbuka |
 | `RISET-CAROM-Air-untuk-CCTV.md` | Laporan riset utama: formulasi CAROM Air, analisis rezim geometri, derivasi formula pengukuran, anggaran galat, dan penilaian kelayakan |
 | `KALIBRASI-CCTV-CAWANG-REV2.md` | Kalibrasi pada rekaman nyata (720p, jalan tol). **Dokumen kalibrasi yang berlaku** |
 | `AUDIT-16-15-44.md` | Audit rekaman kedua (480×360 substream) — **tidak layak**, beserta analisis penyebabnya |
