@@ -1,0 +1,28 @@
+{
+  "image": "D:\\Kerjaan\\carom-research\\frames\\median2.png",
+  "weights": "distorted",
+  "camera_model": "simple_radial",
+  "image_width": 1280.0,
+  "image_height": 720.0,
+  "fx": 890.3426513671875,
+  "fy": 890.3426513671875,
+  "cx": 640.0,
+  "cy": 360.0,
+  "hfov_deg": 71.41900562221375,
+  "vfov_deg": 44.03078033354135,
+  "pitch_rad": -0.04362739250063896,
+  "pitch_deg_raw": -2.4996654614473113,
+  "pitch_deg_down_positive": 2.4996654614473113,
+  "roll_rad": -0.007297910284250975,
+  "roll_deg": -0.4181394585526998,
+  "gravity_vec3d": [
+    0.007291631307452917,
+    -0.9990218877792358,
+    -0.043613553047180176
+  ],
+  "distortion": [
+    -0.0626583844423294,
+    -0.0626583844423294
+  ],
+  "focal_uncertainty_px": 226.24778747558594
+}

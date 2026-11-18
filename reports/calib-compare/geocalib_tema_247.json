@@ -1,0 +1,24 @@
+{
+  "image": "D:\\Kerjaan\\carom-research\\out\\calib-compare\\frame_tema_247.png",
+  "weights": "pinhole",
+  "camera_model": "pinhole",
+  "image_width": 1280.0,
+  "image_height": 720.0,
+  "fx": 980.496826171875,
+  "fy": 980.4969482421875,
+  "cx": 640.0,
+  "cy": 360.0,
+  "hfov_deg": 66.26740374262332,
+  "vfov_deg": 40.322510123695935,
+  "pitch_rad": -0.03720223903656006,
+  "pitch_deg_raw": -2.131531285231729,
+  "pitch_deg_down_positive": 2.131531285231729,
+  "roll_rad": -0.00500842509791255,
+  "roll_deg": -0.2869616201177852,
+  "gravity_vec3d": [
+    0.00500543974339962,
+    -0.9992955923080444,
+    -0.0371936596930027
+  ],
+  "focal_uncertainty_px": 206.42979431152344
+}

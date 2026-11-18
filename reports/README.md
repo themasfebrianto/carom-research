@@ -18,6 +18,7 @@ Salinan kurasi dari folder kerja `out/`. Folder `out/` tetap di-`.gitignore` kar
 | `svld/` | Validasi SVLD-3D: kalibrasi, geometri, sensitivitas, subset sudut |
 | `keypoint/` | Detectability keypoint dan mask-based fitting pada SVLD |
 | `timepass/` | Side-view Cawang dan fitting kontainer |
+| `calib-compare/` | GeoCalib vs AnyCalib vs VP vs Cawang dengan anchor `w=3,60 m` |
 
 ### `i24/`
 
@@ -78,6 +79,18 @@ Angka yang dipakai di dokumen utama semuanya ada di `summary.json`, `*_summary.j
 | `container20/container_fit.json` | **Hasil bersih** 20 ft TEMA: 6,046 m vs 6,058 m (−0,2%), IoU 0,972 |
 
 Catatan: `container_fit_report.md` adalah percobaan lama dengan threshold warna HSV. Hasil yang berlaku adalah `container20/container_fit.json` dan bagian "Validasi 20 ft" di `../HASIL-TIMEPASS-CAWANG.md`; mask-nya berasal dari Grounded SAM 2 dengan box prompt container-only.
+
+### `calib-compare/`
+
+| Berkas | Isi |
+|---|---|
+| `README.md` | Laporan uji banding GeoCalib, AnyCalib, VP, dan Cawang dengan anchor `w=3,60 m` |
+| `summary.csv` | Tabel f, pitch, yaw, h, RMS fixed pose/fixed f |
+| `fits.json` | Hasil fitting lengkap 18 tepi dash, invarian, dan parameter |
+| `geocalib_*.json` | Keluaran GeoCalib single/multi-frame, termasuk varian distorted |
+| `anycalib_*.json` | Keluaran AnyCalib `simple_pinhole`, `pinhole`, `radial:1`, dan varian model |
+
+Hasil pokok: Cawang dash fit tetap paling konsisten (RMS 1,101 px); GeoCalib `f` 9–13% terlalu rendah; AnyCalib +1,6% pada frame TEMA tetapi +9–12% pada frame lain; VP-only cukup untuk inisialisasi, bukan pengganti fitting.
 
 ## Cara mereproduksi
 

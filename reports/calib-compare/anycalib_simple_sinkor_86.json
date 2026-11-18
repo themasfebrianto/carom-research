@@ -1,0 +1,27 @@
+{
+  "image": "D:\\Kerjaan\\carom-research\\out\\calib-compare\\frame_sinkor_86.png",
+  "model_id": "anycalib_pinhole",
+  "cam_id": "simple_pinhole",
+  "image_width": 1280,
+  "image_height": 720,
+  "intrinsics": [
+    1206.896240234375,
+    640.0657958984375,
+    361.9874267578125
+  ],
+  "intrinsics_named": {
+    "f": 1206.896240234375,
+    "cx": 640.0657958984375,
+    "cy": 361.9874267578125
+  },
+  "pred_size": [
+    238,
+    420
+  ],
+  "fx": 1206.896240234375,
+  "fy": 1206.896240234375,
+  "cx": 640.0657958984375,
+  "cy": 361.9874267578125,
+  "hfov_deg": 55.872749150249874,
+  "vfov_deg": 33.21818900931316
+}

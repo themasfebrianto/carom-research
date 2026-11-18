@@ -183,6 +183,20 @@ Tinggi kontainer dipaku ke standar ISO: 2,591 m (standar) atau 2,896 m (high cub
 Keluaran: `container_fit.json` dan `container_fit_overlay.jpg`.
 Hasil 20 ft TEMA: $L=6{,}046$ m vs 6,058 m (−0,2%), $W=2{,}437$ m, IoU 0,972.
 
+## Uji banding kalibrasi
+
+Skrip di `scripts/calib_compare/` membandingkan GeoCalib, AnyCalib, VP, dan Cawang dengan anchor `w = 3,60 m`. Hasil dan batasannya ada di `reports/calib-compare/README.md`.
+
+```powershell
+python scripts\calib_compare\run_geocalib.py `
+  frames\median2.png --out out\calib-compare\geocalib_median2.json
+python scripts\calib_compare\run_anycalib.py `
+  frames\median2.png --cam-id simple_pinhole `
+  --out out\calib-compare\anycalib_simple_pinhole.json
+node scripts\calib_compare\fit_compare.mjs
+python scripts\calib_compare\make_summary.py
+```
+
 ## Catatan teknis
 
 - `P` I24-3D ditulis `[4,3]`; parser menerima 3×4 dan 4×3.

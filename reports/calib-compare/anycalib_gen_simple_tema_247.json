@@ -1,0 +1,27 @@
+{
+  "image": "D:\\Kerjaan\\carom-research\\out\\calib-compare\\frame_tema_247.png",
+  "model_id": "anycalib_gen",
+  "cam_id": "simple_pinhole",
+  "image_width": 1280,
+  "image_height": 720,
+  "intrinsics": [
+    1155.8271484375,
+    640.0708618164062,
+    361.5957946777344
+  ],
+  "intrinsics_named": {
+    "f": 1155.8271484375,
+    "cx": 640.0708618164062,
+    "cy": 361.5957946777344
+  },
+  "pred_size": [
+    238,
+    420
+  ],
+  "fx": 1155.8271484375,
+  "fy": 1155.8271484375,
+  "cx": 640.0708618164062,
+  "cy": 361.5957946777344,
+  "hfov_deg": 57.94800238619248,
+  "vfov_deg": 34.599993856617
+}

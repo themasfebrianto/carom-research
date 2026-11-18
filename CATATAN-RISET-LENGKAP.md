@@ -106,7 +106,29 @@ Empat set parameter (A–D) memfit citra hampir sama; perbedaan proyeksi maksimu
 
 - Rekaman 480×360: $f=616\pm30$ px, pitch 12,1°; VP 11,0° → selisih 1,1°.
 - SVLD 5 scene: hanya **1/5** lulus f<5% dan pitch<2°; f meleset 2,1–51,0%, pitch 0,81–4,99°.
-- Kesimpulan: GeoCalib berguna, tetapi **wajib divalidasi per scene**. Jangan jadikan satu-satunya sumber $f$.
+- Cawang 720p (median2): f=943,3 px, pitch 1,995°; multi-frame shared f=969,6. Terhadap dash fit (f=1082,6; RMS 1,097 px), GeoCalib 9–13% terlalu rendah; RMS fixed-pose 3,1–4,4 px. Varian distorted+radial f=890,3. **Bukan pengganti f atau pitch dash.**
+- AnyCalib (Cawang): f bergantung frame, 1100–1207 px; frame TEMA 1100 px (+1,6%, RMS 1,215 px), median2 1183 px (+9,3%). Berguna sebagai cek independen per frame, bukan kalibrasi tunggal. Detail: `reports/calib-compare/README.md`.
+- Kesimpulan: GeoCalib/AnyCalib berguna sebagai pembanding, tetapi **wajib divalidasi per scene**. Jangan jadikan satu-satunya sumber $f$.
+
+### 4.2.1 Combo GeoCalib + AnyCalib + VP + anchor lebar jalan
+
+Komponen ini cukup untuk membentuk homografi metrik, tetapi **belum cukup jika hanya ditempel** (f model + VP mentah + w=3,60 + langsung hitung H).
+
+- `f` GeoCalib di Cawang 943–980 px (9–13% terlalu rendah); AnyCalib 1100–1207 px tergantung frame.
+- VP dari garis (`vpfit`) beda 0,21° pitch dan 0,34° yaw dari dash fit; RMS fixed pose 1,333 px vs 1,101 px.
+- `w=3,60 m` masih asumsi; error skala ±4% menjadi sekitar ±9 cm pada 30 m.
+- GeoCalib melihat roll −0,54°; model dash Cawang mengabaikan roll. Bisa jadi superelevasi nyata, bukan sekadar error model.
+
+Syarat agar combo ini cukup:
+
+1. pilih `f` dengan gerbang/median 5–10 frame; jangan percaya satu frame;
+2. VP dari garis sejajar/tepi jalan/vehicle VP yang bersih, robust terhadap bayangan dan lengkung;
+3. anchor `w` atau `h` diukur, bukan diasumsikan;
+4. joint fit `f, pitch, yaw, roll, h` dengan prior, bukan plug-and-play;
+5. validasi reproyeksi ≤1–2 px dan cek `h` independen;
+6. ground truth lokal sebagai gerbang akhir.
+
+**Putusan:** cukup untuk screening/kalibrasi awal; belum untuk penegakan ODOL. Untuk Cawang, dash fit + anchor `w` tetap yang utama. Detail: `reports/calib-compare/README.md`.
 
 ### 4.3 SVLD-3D
 

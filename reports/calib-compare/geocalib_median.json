@@ -1,0 +1,24 @@
+{
+  "image": "D:\\Kerjaan\\carom-research\\frames\\median.png",
+  "weights": "pinhole",
+  "camera_model": "pinhole",
+  "image_width": 1280.0,
+  "image_height": 720.0,
+  "fx": 960.3343505859375,
+  "fy": 960.334228515625,
+  "cx": 640.0,
+  "cy": 360.0,
+  "hfov_deg": 67.36172299106443,
+  "vfov_deg": 41.09897968892132,
+  "pitch_rad": -0.031399164348840714,
+  "pitch_deg_raw": -1.7990395974262126,
+  "pitch_deg_down_positive": 1.7990395974262126,
+  "roll_rad": -0.009090105071663857,
+  "roll_deg": -0.5208246559368037,
+  "gravity_vec3d": [
+    0.009086409583687782,
+    -0.999465823173523,
+    -0.031394004821777344
+  ],
+  "focal_uncertainty_px": 187.317626953125
+}

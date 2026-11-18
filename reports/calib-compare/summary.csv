@@ -1,0 +1,11 @@
+method,f_px,delta_f_pct,pitch_deg,yaw_deg,h_m,rms_fixed_pose_px,rms_fixed_f_px,dof_fixed_pose,note
+Cawang dash fit,1082.58,0.0,2.432,0.271,8.876,1.101,1.101,15,"baseline: 6 dash x 3 edge, w=3.60"
+GeoCalib pinhole median2,943.28,-12.87,1.995,0.7,9.234,3.963,2.168,15,"single image, f+pitch; yaw from VP"
+GeoCalib multi shared,969.55,-10.44,1.905,0.681,8.989,3.487,1.852,15,"8 frames, shared f; f=969.55"
+AnyCalib simple median2,1183.1,9.28,2.422,0.559,8.521,2.31,1.615,15,simple_pinhole; yaw/pitch from VP
+AnyCalib pinhole median2,1181.63,9.15,2.425,0.559,8.529,2.279,1.604,15,full pinhole; f avg of fx/fy
+AnyCalib radial:1 median2,1252.85,15.73,2.287,0.528,8.157,3.867,2.216,15,"radial:1, k1=-0.0289"
+AnyCalib simple TEMA 247,1100.0,1.61,2.605,0.601,9.027,1.215,1.122,15,frame t=247; f=1100.0
+AnyCalib gen simple median2,1244.78,14.98,2.302,0.531,8.196,3.682,2.144,15,model variant anycalib_gen
+VP only (f=1082.6),1082.58,0.0,2.646,0.61,9.145,1.333,1.101,15,vpfit VP; f fixed
+Free fit (w=3.60),1082.03,-0.05,2.429,0.269,8.875,1.101,,12,all params free; f=1082.03
