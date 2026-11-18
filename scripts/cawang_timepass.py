@@ -51,36 +51,28 @@ def ground_point(u: float, v: float):
 
 
 def mask_endpoints(mask: np.ndarray):
-    cnts, _ = cv2.findContours(mask.astype(np.uint8), cv2.RETR_EXTERNAL,
-                               cv2.CHAIN_APPROX_NONE)
-    if not cnts:
+    """Lower envelope of the mask, endpoints along the road VP direction.
+
+    Using the bottom pixel of each column avoids the bumper/roof contour and
+    approximates the ground-contact line better than the raw contour.
+    """
+    pts = []
+    for x in range(mask.shape[1]):
+        ys = np.where(mask[:, x])[0]
+        if len(ys):
+            pts.append((x, float(ys.max())))
+    if len(pts) < 10:
         return None
-    cnt = max(cnts, key=cv2.contourArea).reshape(-1, 2).astype(float)
-    if len(cnt) < 10:
-        return None
-    mean = cnt.mean(axis=0)
+    pts = np.array(pts, dtype=float)
+    mean = pts.mean(axis=0)
     axis = np.array([VPX - mean[0], VPY - mean[1]], dtype=float)
     n = np.linalg.norm(axis)
     if n < 1e-6:
-        cov = np.cov((cnt - mean).T)
-        vals, vecs = np.linalg.eigh(cov)
-        axis = vecs[:, np.argmax(vals)]
-    else:
-        axis /= n
-    proj = (cnt - mean) @ axis
+        return None
+    axis /= n
+    proj = (pts - mean) @ axis
     i_min, i_max = int(np.argmin(proj)), int(np.argmax(proj))
-    p_min, p_max = cnt[i_min], cnt[i_max]
-    span = abs(proj[i_max] - proj[i_min])
-
-    # ground contact: lowest (max y) contour point near each end
-    def contact(p):
-        d = np.abs((cnt - p) @ axis)
-        near = cnt[d < max(2.0, 0.12 * span)]
-        if len(near) == 0:
-            return p
-        return near[np.argmax(near[:, 1])]
-
-    return contact(p_min), contact(p_max), cnt
+    return pts[i_min], pts[i_max], pts
 
 
 def iou(a, b):
