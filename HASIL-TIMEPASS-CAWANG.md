@@ -82,6 +82,26 @@ YOLO26n-seg mendeteksi truk SINKOR dengan confidence 0,74 dan mask yang lebih ha
 
 Kesimpulan: YOLO26-seg **bukan** solusi container-only. Ia tidak memisahkan kabin dari kontainer, dan untuk whole-truck justru memberi panjang yang lebih jauh. Bottleneck tetap: mask kontainer spesifik + ambiguitas skala.
 
+## Grounded SAM 2: segmentasi container-only
+
+Model yang dicoba: **Grounding DINO tiny + SAM 2.1 tiny** (Hugging Face `transformers`).
+
+- Prompt teks `"shipping container."` mendeteksi box `[79, 439, 365, 714]` (score 0,641), tetapi box itu **mencakup kabin**; mask SAM 2 jadi whole-truck (area 57k px).
+- Prompt box yang hanya kontainer `[80, 440, 310, 700]` memberi mask **kontainer saja** (area 46k px, kabin tidak ikut).
+- Ini menunjukkan SAM 2 bisa memisahkan kontainer dari kabin **jika box prompt-nya benar**; prompt teks saja belum cukup.
+
+Fit 3D box ke mask kontainer-only dengan $H=2{,}591$ m:
+
+| Parameter | Fit |
+|---|---:|
+| $L$ | **13,99 m** |
+| $W$ | 2,69 m |
+| $Z_0$ | 1,43 m |
+| yaw | −6,8° |
+| IoU | 0,741 |
+
+Perbandingan: 40 ft = 12,192 m (+14,7%); **45 ft = 13,716 m (+2,0%)**. Jenis kontainer tidak diketahui, jadi ini belum bisa disebut galat. Segmentasi sudah benar; yang tersisa adalah **identifikasi tipe kontainer** dan ambiguitas skala.
+
 ## Batas
 
 - Hanya 6 kendaraan dalam batch; belum ada distribusi galat.

@@ -53,6 +53,7 @@ Skrip teori memakai Node.js dan `ffmpeg`. Validasi eksternal memakai Python; lih
 | `scripts/svld_kp_detectability.py` | Detectability keypoint pada SVLD |
 | `scripts/svld_mask_fit.py` | Fitting 3D box ke mask YOLO-seg |
 | `scripts/cawang_timepass.py` | Side-view/time-of-passage di Cawang |
+| `scripts/grounded_sam2_container.py` | Grounding DINO + SAM 2: segmentasi kontainer-only |
 
 ### Verifikasi teori
 
