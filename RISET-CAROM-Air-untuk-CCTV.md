@@ -1103,12 +1103,13 @@ Diperlukan redundansi: stereo terkalibrasi, atau gerbang ukur (light curtain / L
 
 ## 13. Keterbatasan kajian
 
-1. **Tidak ada eksperimen lapangan.** Seluruh angka galat berasal dari (a) hukum propagasi analitik yang diturunkan di sini, (b) verifikasi numerik pada kamera sintetis (Lampiran B), dan (c) angka yang dilaporkan literatur. Validasi pada CCTV nyata di Indonesia diperlukan sebelum adopsi.
+1. **Tidak ada eksperimen lapangan di Indonesia.** Seluruh angka galat berasal dari (a) hukum propagasi analitik yang diturunkan di sini, (b) verifikasi numerik pada kamera sintetis (Lampiran B), dan (c) angka yang dilaporkan literatur. Validasi eksternal pada SVLD-3D sudah dilakukan (lihat `HASIL-VALIDASI-SVLD.md`), tetapi itu proksi, bukan CCTV Indonesia. Validasi lapangan tetap diperlukan sebelum adopsi.
 2. **Angka CAROM Air berasal dari satu eksperimen.** Evaluasi dimensi dilakukan pada satu mobil terparkir, drone 85 m, enam track, 20 menit [1]. Generalisasi ke lalu lintas padat belum diuji oleh penulisnya.
 3. **Model kotak mengasumsikan kendaraan kaku dan boxy.** Bus, truk bak terbuka, kendaraan dengan muatan tinggi, dan kendaraan modifikasi menyimpang jauh.
 4. **Analisis mengasumsikan bidang tanah datar.** Model tanah per-segmen dapat memperbaiki, tetapi menambah parameter yang harus dikalibrasi.
 5. **Referensi yang diakses terbatas.** Beberapa makalah (mis. IEEE Xplore) hanya tersedia abstraknya; angka diambil dari versi arXiv atau halaman penerbit.
 6. **Tidak membahas aspek hukum pembuktian.** Persyaratan metrologi legal (ketertelusuran, sertifikasi alat) berada di luar lingkup dan memerlukan kajian tersendiri.
+7. **Pipeline CAROM Air belum dijalankan penuh.** Komponen kalibrasi, fitting geometri, keypoint zero-shot, dan mask-based sudah diuji pada SVLD-3D. Hasilnya: geometri 0,36%, mask W/H ~7%, tetapi panjang ~22% dan detector 5 titik belum mencapai target (Car 44,1%, Bus 0%). Ringkasan: `HASIL-VALIDASI-SVLD.md`.
 
 ---
 
