@@ -71,6 +71,17 @@ Uji container-only pada truk SINKOR:
 
 Penyebab: mask warna parsial, ambiguitas skala $Z_0/L/W$, dan kontainer dilihat miring. Pipeline container-only **belum akurat**. Diperlukan anotasi manual 4 sudut atau segmentasi yang lebih baik (SAM 2), atau GT side-view/I24-3D.
 
+## YOLO26-seg: uji tambahan
+
+YOLO26n-seg mendeteksi truk SINKOR dengan confidence 0,74 dan mask yang lebih halus, tetapi mask-nya tetap **whole-truck** (kabin + kontainer), bukan kontainer saja.
+
+| Model | Median lower-envelope | Catatan |
+|---|---:|---|
+| YOLO11n-seg | **14,04 m** | lebih dekat ke total 14,6 m |
+| YOLO26n-seg | 17,50 m | mask mencakup bayangan/roda; lower envelope memanjang |
+
+Kesimpulan: YOLO26-seg **bukan** solusi container-only. Ia tidak memisahkan kabin dari kontainer, dan untuk whole-truck justru memberi panjang yang lebih jauh. Bottleneck tetap: mask kontainer spesifik + ambiguitas skala.
+
 ## Batas
 
 - Hanya 6 kendaraan dalam batch; belum ada distribusi galat.
