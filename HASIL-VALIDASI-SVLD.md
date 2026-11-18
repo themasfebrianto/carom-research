@@ -140,7 +140,7 @@ Untuk panjang, diperlukan multi-frame, multi-kamera, atau model bentuk yang lebi
 3. **Fine-tune keypoint** — butuh GPU; `vehicle-keypoints` atau SKoPe3D.
 4. **Validasi lapangan Indonesia** — satu kendaraan diukur dengan meteran; tetap diperlukan.
 
-**Catatan Cawang.** Side-view/lower-envelope pada satu kamera sudah dicoba: truk kontainer 40 ft terukur **14,0–14,3 m** (pembanding standar ≈14,6 m) dan batch 6 kendaraan memberi **6,4–17,4 m** yang masuk akal untuk box truck, 20 ft, 40 ft, dan truk panjang. Kecepatan belum stabil. Ini proof of concept, bukan validasi. Lihat `HASIL-TIMEPASS-CAWANG.md`.
+**Catatan Cawang.** Side-view/lower-envelope pada satu kamera sudah dicoba: truk kontainer 40 ft terukur **14,0–14,3 m** (pembanding standar ≈14,6 m) dan batch 6 kendaraan memberi **6,4–17,4 m** yang masuk akal untuk box truck, 20 ft, 40 ft, dan truk panjang. Kecepatan belum stabil. **Validasi 20 ft dengan mask container-only: 6,046 m vs 6,058 m (−0,2%)** — hasil GT pertama yang bersih. Lihat `HASIL-TIMEPASS-CAWANG.md`.
 
 ## 11. Berkas
 

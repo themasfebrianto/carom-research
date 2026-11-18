@@ -102,6 +102,27 @@ Fit 3D box ke mask kontainer-only dengan $H=2{,}591$ m:
 
 Perbandingan: 40 ft = 12,192 m (+14,7%); **45 ft = 13,716 m (+2,0%)**. Jenis kontainer tidak diketahui, jadi ini belum bisa disebut galat. Segmentasi sudah benar; yang tersisa adalah **identifikasi tipe kontainer** dan ambiguitas skala.
 
+## Validasi 20 ft: kontainer TEMA
+
+Frame t=247 s; kontainer merah TEMA di lajur kiri. Box prompt SAM 2 `[255, 475, 405, 645]` memberi mask kontainer-only (21.907 px; bbox 252–418 × 473–635).
+
+Fit 3D box dengan tinggi standar 2,591 m; crop `[230, 450, 430, 680]`:
+
+| Parameter | Fit | Standar 20 ft | Galat |
+|---|---:|---:|---:|
+| $L$ | **6,046 m** | 6,058 m | **−0,2%** |
+| $W$ | 2,437 m | 2,438 m | −0,04% |
+| $Z_0$ | 1,772 m | ±1,1 m | — |
+| IoU | 0,972 | — | — |
+
+**Ini validasi ground truth pertama yang bersih.** Dengan mask kontainer-only dan tinggi standar, panjang 20 ft tereproduksi dalam 0,2%. Skrip: `scripts/cawang_container_fit.py`.
+
+Implikasi:
+
+- Segmentasi container-only + tinggi standar **bekerja** bila mask bersih dan tipe kontainer diketahui.
+- Bottleneck bergeser dari segmentasi ke **identifikasi tipe kontainer** (20/40/45 ft) dan kualitas mask.
+- 40 ft SINKOR 13,99 m tetap ambigu: 40 ft (+14,7%) atau 45 ft (+2,0%).
+
 ## Batas
 
 - Hanya 6 kendaraan dalam batch; belum ada distribusi galat.
@@ -121,7 +142,11 @@ Perbandingan: 40 ft = 12,192 m (+14,7%); **45 ft = 13,716 m (+2,0%)**. Jenis kon
 ## Berkas
 
 - `scripts/cawang_timepass.py`
+- `scripts/grounded_sam2_container.py`
+- `scripts/cawang_container_fit.py`
 - `out/timepass/lower/timepass_bus.csv`
 - `out/timepass/cand2_*/timepass_bus.csv`
+- `out/timepass/gsam2_20ft/container_mask_0.npy`
+- `out/timepass/container20/container_fit.json`
 - `out/timepass/truck86_endpoints.jpg`
 - `out/timepass/truck86.jpg`

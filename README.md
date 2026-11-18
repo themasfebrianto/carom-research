@@ -54,6 +54,7 @@ Skrip teori memakai Node.js dan `ffmpeg`. Validasi eksternal memakai Python; lih
 | `scripts/svld_mask_fit.py` | Fitting 3D box ke mask YOLO-seg |
 | `scripts/cawang_timepass.py` | Side-view/time-of-passage di Cawang |
 | `scripts/grounded_sam2_container.py` | Grounding DINO + SAM 2: segmentasi kontainer-only |
+| `scripts/cawang_container_fit.py` | Fit 3D box ke mask kontainer-only |
 
 ### Verifikasi teori
 
