@@ -15,6 +15,7 @@ Kajian adaptasi metode CAROM Air (drone) untuk pengukuran dimensi kendaraan dari
 | `PAPER-REPO-Untuk-Menutup-Kelemahan.md` | Peta paper/repo untuk menutup kelemahan: ground truth I24-3D/SVLD-3D, pipeline SKoPe3D/OpenPifPaf/GSNet, kalibrasi naver/cctv, skala MoGe-2 |
 | `VALIDASI-PROTOCOL.md` | Protokol dan ambang validasi eksternal |
 | `HASIL-VALIDASI-SVLD.md` | Sintesis validasi SVLD-3D: kalibrasi, geometri, sensitivitas, keypoint, mask; putusan W/H vs L |
+| `HASIL-TIMEPASS-CAWANG.md` | Uji side-view/time-of-passage di Cawang: truk 40 ft 15,9 m, 71 km/jam; proof of concept |
 
 ## Temuan pokok
 
@@ -51,6 +52,7 @@ Skrip teori memakai Node.js dan `ffmpeg`. Validasi eksternal memakai Python; lih
 | `scripts/svld_subsets.py` | Uji subset sudut |
 | `scripts/svld_kp_detectability.py` | Detectability keypoint pada SVLD |
 | `scripts/svld_mask_fit.py` | Fitting 3D box ke mask YOLO-seg |
+| `scripts/cawang_timepass.py` | Side-view/time-of-passage di Cawang |
 
 ### Verifikasi teori
 

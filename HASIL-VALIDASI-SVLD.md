@@ -140,6 +140,8 @@ Untuk panjang, diperlukan multi-frame, multi-kamera, atau model bentuk yang lebi
 3. **Fine-tune keypoint** — butuh GPU; `vehicle-keypoints` atau SKoPe3D.
 4. **Validasi lapangan Indonesia** — satu kendaraan diukur dengan meteran; tetap diperlukan.
 
+**Catatan Cawang.** Side-view/time-of-passage pada satu kamera sudah dicoba: truk kontainer 40 ft terukur **15,9 m** dan kecepatan **71 km/jam** (pembanding standar ≈16,2 m). Ini proof of concept, bukan validasi. Lihat `HASIL-TIMEPASS-CAWANG.md`.
+
 ## 11. Berkas
 
 - `out/svld/geocalib_mini.md`
