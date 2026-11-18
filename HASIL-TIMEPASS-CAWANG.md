@@ -56,6 +56,21 @@ Kecepatan dari batch: 7–119 km/jam. Angka ini **tidak dipakai** karena baselin
 4. **Kelas YOLO tidak reliabel.** Mobil bisa terdeteksi sebagai bus; kelas hanya dipakai untuk filter kasar, bukan untuk keputusan.
 5. **Ini proof of concept, bukan validasi.** Tidak ada GT; pembanding hanya standar kontainer. Diperlukan kendaraan yang diukur dengan meteran atau dataset GT.
 
+## Container-only: hasil negatif
+
+Standar kontainer 40 ft = 12,192 m; 20 ft = 6,058 m. Ini GT yang sah untuk **kontainer**, bukan truk total.
+
+Uji container-only pada truk SINKOR:
+
+| Parameter | Fit | Standar 40 ft | Galat |
+|---|---:|---:|---:|
+| $L$ | 13,81 m | 12,192 m | +13,3% |
+| $W$ | 2,69 m | 2,438 m | +10,4% |
+| $Z_0$ | 1,58 m | ±1,1 m | mentok batas |
+| IoU | 0,816 | — | — |
+
+Penyebab: mask warna parsial, ambiguitas skala $Z_0/L/W$, dan kontainer dilihat miring. Pipeline container-only **belum akurat**. Diperlukan anotasi manual 4 sudut atau segmentasi yang lebih baik (SAM 2), atau GT side-view/I24-3D.
+
 ## Batas
 
 - Hanya 6 kendaraan dalam batch; belum ada distribusi galat.
@@ -70,6 +85,7 @@ Kecepatan dari batch: 7–119 km/jam. Angka ini **tidak dipakai** karena baselin
 2. **Time-of-passage murni**: definisikan garis melintang pada $X_0$; catat waktu tepi depan/belakang melintas; bandingkan $L=v\,\Delta t$ dengan hasil side-view.
 3. **I24-3D satu kamera** (GT) untuk validasi akurasi, setelah akses disetujui. Catatan: SVLD tidak cocok karena semua objek menghadap depan/belakang (sudut 4–29°).
 4. **Perbaiki endpoint** dengan deteksi roda/kontak tanah, bukan lower envelope mentah.
+5. **Container-only**: perlu anotasi manual 4 sudut atau SAM 2; fit warna saat ini +13,3%.
 
 ## Berkas
 
