@@ -36,9 +36,64 @@ Prosedur ini **tidak** menghasilkan:
 | Perkakas | Fungsi | Alternatif |
 |---|---|---|
 | `ffmpeg` / `ffprobe` | inspeksi, ekstraksi frame, median temporal | OpenCV + NumPy |
+| **GeoCalib** | **focal length + arah gravitasi (pitch, roll) dari satu citra** | DeepCalib, Perceptual Calibration, kalibrasi lab |
 | Node.js atau Python | deteksi marka, fitting | MATLAB, Julia |
 | Laser rangefinder | anchoring tinggi kamera | meteran, RTK |
 | GNSS RTK (opsional) | anchoring presisi | — |
+
+### 0.3.1 GeoCalib sebagai alat utama
+
+GeoCalib (Veicht dkk., ECCV 2024) mengestimasi intrinsik kamera dan arah gravitasi dari **satu citra**, dengan menggabungkan jaringan neural dan optimasi geometris. Ini adalah alat utama untuk mendapatkan $f$, pitch, dan roll — menggeser beban kerja dari fitting manual.
+
+**Yang diberikannya:**
+
+| Keluaran | Simbol | Kegunaan |
+|---|---|---|
+| Focal length | $f$ | memutus degenerasi $f$–$h$ (§5) |
+| Sudut pandang | HFOV, VFOV | verifikasi terhadap datasheet lensa |
+| Arah gravitasi | pitch $\theta$, roll $\phi$ | orientasi vertikal, cek asumsi roll = 0 |
+
+**Yang tidak diberikannya:** tinggi kamera, translasi, dan skala metrik. Untuk itu tetap diperlukan anchoring (§6).
+
+**Pemasangan:**
+
+```bash
+git clone https://github.com/cvg/GeoCalib
+pip install -e GeoCalib          # butuh torch + torchvision
+```
+
+Bobot model diunduh otomatis pada pemakaian pertama.
+
+**Pemakaian minimal:**
+
+```python
+import torch
+from geocalib import GeoCalib
+
+model = GeoCalib()
+img = model.load_image("frames/median.png")
+res = model.calibrate(img)
+cam, grav = res["camera"], res["gravity"]
+
+print(float(cam.f))                          # focal length, piksel
+print(float(grav.pitch), float(grav.roll))   # radian
+```
+
+**Aturan pemakaian.** Jalankan pada **beberapa citra** (median + 3–4 frame), bukan satu. Sebaran $f$ antar citra adalah ukuran keandalan: jika melebihi ±5%, hasilnya tidak dapat dipercaya. Lalu **validasi silang dengan vanishing point** (§3.1) — lihat §0.3.2.
+
+### 0.3.2 Validasi silang GeoCalib dengan vanishing point
+
+Ini gerbang kualitas wajib. Dua metode yang sepenuhnya independen harus sepakat pada pitch:
+
+$$\theta_{\text{VP}}=\arctan\!\left(\frac{c_y-v_h}{f_{\text{GeoCalib}}}\right),
+\qquad
+\bigl|\theta_{\text{VP}}-\theta_{\text{GeoCalib}}\bigr|<2^\circ$$
+
+dengan $v_h$ baris horizon dari VP jalan. Jika selisihnya melebihi 2°, salah satu dari keduanya keliru — dan kalibrasi tidak boleh dilanjutkan.
+
+**Bila keduanya sepakat,** $f$ dan orientasi dapat dipercaya, dan degenerasi $f$–$h$ terpecah. **Bila tidak,** jangan memilih salah satu; cari penyebabnya (distorsi lensa, marka tidak sejajar, atau domain gap model).
+
+**Contoh terverifikasi.** Pada rekaman 480×360 jalan tol dengan marka yang tidak konsisten, GeoCalib memberi $f=616\pm30$ px dan pitch 12,1°; VP memberi 11,0° pada $f$ yang sama. Selisih 1,1° — kedua metode saling menguatkan, dan $f$ berhasil dikunci setelah sebelumnya tidak terkunci sama sekali.
 
 ### 0.4 Konvensi
 
@@ -196,7 +251,31 @@ Setiap dash harus diberi indeks (lajur $j$, baris $k$).
 
 Jika fase tidak konsisten, perlakukan setiap lajur sebagai deret independen dengan fase sendiri.
 
-### 3.4 Jebakan
+### 3.4 Uji kesejajaran garis dan distorsi — wajib sebelum fitting
+
+Asumsi inti §3 adalah **garis lajur sejajar**. Jangan percaya begitu saja; dua uji berikut memisahkan penyebabnya.
+
+**Uji A — distorsi radial.** Jika sebuah garis tampak melengkung, periksa apakah itu lensa: pindai koefisien $k_1$ dan cari nilai yang meluruskan **semua** garis sekaligus.
+
+| Hasil | Kesimpulan |
+|---|---|
+| Satu $k_1$ meluruskan semua garis | distorsi lensa — modelkan $k_1$ |
+| Sebagian garis lurus, sebagian tidak | **bukan** lensa — geometri scene |
+| Tidak ada $k_1$ yang memperbaiki | **bukan** lensa |
+
+Patokan penting: distorsi radial memengaruhi semua garis sesuai radiusnya. Jika satu garis lurus sempurna pada radius 85–250 px sementara garis lain melengkung pada radius 190–215 px, itu bukan lensa.
+
+**Uji B — kesejajaran.** Back-project titik-titik pada dua garis berbeda ke bidang tanah memakai $f$ dari GeoCalib dan orientasi dari VP, lalu periksa apakah jarak lateralnya konstan. Jika $\Delta u$ adalah jarak kedua garis dalam piksel pada baris $v$, dan $z(v)$ kedalaman relatifnya, maka untuk lebar konstan:
+
+$$\frac{\Delta u(v_1)}{\Delta u(v_2)}=\frac{z(v_2)}{z(v_1)}$$
+
+Penyimpangan > 15% berarti garis **tidak sejajar** dan tidak dapat dipakai sebagai acuan lateral.
+
+**Penyebab umum:** perkerasan melebar di daerah *merge*/*diverge*, bahu yang menyempit, atau garis tepi yang mengikuti batas perkerasan sementara garis lain mengikuti arah lajur.
+
+**Jika tidak sejajar:** buang pasangan itu, cari pasangan lain, atau hentikan kalibrasi. Jangan memaksakan model garis sejajar — hasilnya berupa parameter yang saling menutupi kesalahan.
+
+### 3.5 Jebakan
 
 | Gejala | Penyebab | Solusi |
 |---|---|---|
@@ -204,6 +283,7 @@ Jika fase tidak konsisten, perlakukan setiap lajur sebagai deret independen deng
 | Dash sangat panjang | run menyatu dengan garis kuning/bayangan | batasi panjang maksimum, buang lajur |
 | Deteksi acak pada lajur tepi | kontaminasi median/vegetasi | buang lajur tersebut |
 | Tepi bergeser sistematis | ambang global pada gambar dengan gradien | ambang adaptif per lajur |
+| Garis "melengkung" | distorsi lensa **atau** perkerasan menyempit | uji A dan B pada §3.4 |
 
 ---
 
@@ -255,14 +335,17 @@ dengan $X_p$ fase (parameter bebas), 13 m periode dan 5 m panjang garis.
 
 | Parameter | Nilai awal | Sumber |
 |---|---|---|
-| $f$ | $c_x/\tan(\text{HFOV}/2)$ | datasheet lensa |
-| $\theta$ | dari baris horizon: $\theta=\arctan((c_y-v_h)/f)$ | VP jalan |
+| $f$ | **keluaran GeoCalib** | **§0.3.1 (utama)**, datasheet lensa, atau $c_x/\tan(\text{HFOV}/2)$ |
+| $\theta$ | **keluaran GeoCalib**, atau dari baris horizon $\theta=\arctan((c_y-v_h)/f)$ | GeoCalib / VP jalan |
+| $\phi$ | keluaran GeoCalib | seharusnya ≈ 0 |
 | $h$ | perkiraan dari tiang/bangunan | visual |
 | $X_p$ | jarak ke dash terdekat | perkiraan dari ukuran kendaraan |
 | $w$ | 3,5 m | standar, sementara |
 | $Y_0$ | dari $u$ lajur pertama | hitung balik |
 
 Hitung RMS residual pada nilai awal. Jika > 20 px, inisialisasi salah — perbaiki dulu, jangan langsung optimasi.
+
+**Jangan mengoptimasi $f$ bila GeoCalib sudah memasukkannya.** Pakai $f$ sebagai parameter tetap, dan biarkan fitting menentukan $h$, $X_p$, $w$, dan posisi lateral. Dengan begitu degenerasi tidak muncul kembali, dan kovarians yang dilaporkan lebih jujur.
 
 ### 4.4 Optimasi
 
@@ -336,7 +419,30 @@ $$(f,\theta,h,w,Y_0)\longmapsto
 
 Parameter individual **tidak boleh dilaporkan** tanpa anchoring.
 
-### 5.4 Kapan degenerasi lemah
+### 5.4 Memutus degenerasi dengan GeoCalib
+
+Ini jalan keluar yang paling murah, dan karena itu **ditempatkan sebelum anchoring**.
+
+Karena degenerasi berbentuk $(f,\theta,h,w)\mapsto(\lambda f,\theta/\lambda,h/\lambda,w/\lambda)$, mengetahui **salah satu** parameter sudah cukup. GeoCalib memberi $f$ secara langsung:
+
+$$\theta=\frac{f\theta}{f_{\text{GeoCalib}}},\qquad
+h=\frac{fh}{f_{\text{GeoCalib}}},\qquad
+w=\frac{fw}{f_{\text{GeoCalib}}}$$
+
+Tanpa GeoCalib, $f$ harus datang dari kalibrasi laboratorium atau datasheet lensa.
+
+**Syarat:** hasil §0.3.2 harus lolos (selisih pitch < 2°). Jika tidak lolos, $f$ dari GeoCalib tidak boleh dipakai — kembali ke anchoring §6.
+
+**Batasnya.** Dengan $f$ terkunci, degenerasi mati, tetapi skala metrik tetap memerlukan satu acuan. Yang berubah adalah **jenis** acuan yang dibutuhkan:
+
+| Tanpa $f$ | Dengan $f$ dari GeoCalib |
+|---|---|
+| Butuh tinggi kamera **atau** lebar lajur, plus periode marka | Cukup lebar lajur (atau tinggi kamera) |
+| Periode marka menjadi anchor utama | Periode marka hanya menjadi pemeriksaan |
+
+Perhatikan: jika garis lajur **tidak sejajar** (perkerasan melebar, *merge*), acuan lateral tetap tidak tersedia meskipun $f$ diketahui. Kasus itu harus dideteksi lebih dulu dengan uji pada §3.4.
+
+### 5.5 Kapan degenerasi lemah
 
 Degenerasi menguat ketika $\theta$ kecil, karena titik hilang vertikal berada di
 
@@ -453,12 +559,17 @@ Ini validasi paling kuat yang tidak memerlukan ground truth.
 ### Hasil
 | Parameter | Nilai | ± | Status |
 |---|---|---|---|
-| f | | | terukur / ter-anchor |
-| pitch | | | |
-| yaw | | | |
-| h | | | |
-| w | | | |
+| f | | | **GeoCalib** / ter-anchor / lab |
+| pitch | | | GeoCalib / VP |
+| roll | | | GeoCalib |
+| yaw | | | VP |
+| h | | | ter-anchor |
+| w | | | ter-anchor |
 | RMS | | | |
+
+### GeoCalib (validasi silang)
+- f dari N citra: [maks − min] / rata-rata = [..]%
+- pitch GeoCalib: [..]° ; pitch dari VP: [..]° ; selisih: [..]°  → **lolos / tidak**
 
 ### Invarian
 | f·θ | f·h | f·w | w/h |
@@ -500,6 +611,18 @@ ffmpeg -i input.mp4 -vf "select='not(mod(n,300))',tmedian=radius=24" \
 
 # 5. Konversi ke PPM untuk pemrosesan piksel
 ffmpeg -i median.png -pix_fmt rgb24 median.ppm
+
+# 6. GeoCalib — focal length + arah gravitasi (jalankan pada >=4 citra)
+git clone https://github.com/cvg/GeoCalib && pip install -e GeoCalib
+# (bash)
+python - <<'PY'
+from geocalib import GeoCalib
+m = GeoCalib()
+for p in ["median.png", "frame_a.png", "frame_b.png", "frame_c.png"]:
+    r = m.calibrate(m.load_image(p))
+    print(p, float(r["camera"].f), float(r["gravity"].pitch), float(r["gravity"].roll))
+PY
+# syarat: sebaran f antar citra < 5%; pitch vs VP < 2 derajat
 ```
 
 ## Lampiran B — Struktur folder
@@ -528,11 +651,15 @@ proyek/
 [ ] Interlacing / upscaling diperiksa
 [ ] Geometri layak (depresi, jarak, kontak ban terlihat)
 [ ] Median temporal dibuat dan diverifikasi bersih
+[ ] GeoCalib dijalankan pada >= 4 citra; sebaran f < 5%
+[ ] Selisih pitch GeoCalib vs VP < 2 derajat
 [ ] Garis lajur terdeteksi dengan residual garis < 2 px
 [ ] VP konsisten (sebaran sudut < 2°)
-[ ] ≥ 6 dash terdeteksi dengan tepi sub-piksel
-[ ] DoF ≥ 8, RMS < 2 px, tanpa tren
-[ ] Uji degenerasi dijalankan
+[ ] Uji kesejajaran garis lolos (Delta u konsisten, < 15%)
+[ ] Uji distorsi: tidak ada k1 yang dibutuhkan, atau k1 dimodelkan
+[ ] >= 6 dash terdeteksi dengan tepi sub-piksel
+[ ] DoF >= 8, RMS < 2 px, tanpa tren
+[ ] Uji degenerasi dijalankan (dan diputus dengan f GeoCalib atau anchor)
 [ ] Anchor diukur (tinggi / lebar / RTK) dan dicatat
 [ ] Verifikasi silang lolos (w, h, f, HFOV masuk akal)
 [ ] Validasi objek standar / multi-frame
@@ -553,6 +680,9 @@ proyek/
 | 8 | Memakai lajur yang terkontaminasi marka kuning | deteksi palsu | buang lajur, atau deteksi warna terpisah |
 | 9 | Pitch diasumsikan nol | horizon salah, tinggi salah | estimasi pitch dari VP |
 | 10 | Kalibrasi dipakai setelah kamera bergeser | galat tak terdeteksi | pemantau pose §4.7 |
+| 11 | Mempercayai GeoCalib tanpa validasi silang | $f$ salah, seluruh dimensi ikut salah | gerbang §0.3.2 (pitch vs VP < 2°) |
+| 12 | Memakai pasangan garis yang tidak sejajar | parameter saling menutupi kesalahan | uji §3.4 |
+| 13 | Menganggap "garis melengkung" selalu distorsi lensa | salah diagnosis, $k_1$ dipaksakan | uji A/B §3.4 |
 
 ---
 

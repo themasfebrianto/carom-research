@@ -19,6 +19,16 @@ Kajian adaptasi metode CAROM Air (drone) untuk pengukuran dimensi kendaraan dari
 2. **Degenerasi kalibrasi** — dari marka jalan saja, $f$, $h$, dan lebar lajur $w$ tidak teridentifikasi terpisah. Yang terukur hanya $f\theta$, $fh$, $fw$, dan $w/h$. Diperlukan satu anchor metrik.
 3. **Batas pengukuran** — lebar dan tinggi layak pada 18–30 m; panjang tidak layak bila sumbu optik sejajar jalan.
 
+## Perkakas utama
+
+| Perkakas | Fungsi |
+|---|---|
+| **GeoCalib** (Veicht dkk., ECCV 2024) | focal length dan arah gravitasi dari satu citra — memutus degenerasi $f$–$h$ |
+| `ffmpeg` / `ffprobe` | inspeksi, ekstraksi frame, median temporal (`tmedian`) |
+| Node.js / Python | deteksi marka, fitting, analisis |
+
+GeoCalib adalah alat kalibrasi utama: ia memberi $f$ dan pitch, lalu vanishing point memberi yaw, dan satu anchor metrik (tinggi kamera atau lebar lajur) menyelesaikan skalanya. Detail dan gerbang validasinya ada di `SOP-KALIBRASI-CCTV.md` §0.3.
+
 ## Skrip
 
 Tidak ada dependensi eksternal selain Node.js dan `ffmpeg`.

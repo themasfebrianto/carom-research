@@ -14,8 +14,8 @@ Prosedur ini **tidak** melakukan kalibrasi. Sebelum memulai, isi tabel berikut d
 
 | Parameter | Nilai | Status |
 |---|---|---|
-| $f$ | ______ px | harus ter-anchor |
-| $\theta$ | ______ ° | |
+| $f$ | ______ px | **GeoCalib** (§0.3 SOP kalibrasi) atau lab |
+| $\theta$ | ______ ° | GeoCalib atau VP |
 | $\psi$ | ______ ° | |
 | $h$ | ______ m | harus ter-anchor |
 | $c_x, c_y$ | ______ px | |
