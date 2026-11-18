@@ -1,5 +1,5 @@
 # Sumber data — terlalu besar dan berisi citra lalu lintas yang dapat diidentifikasi
-recording*.mp4
+*.mp4
 *.mkv
 *.avi
 *.mov
@@ -9,6 +9,10 @@ frames/*.ppm
 frames/tm*.png
 frames/chk_*.png
 frames/mask*.png
+f2/*.pgm
+f2/*.ppm
+f2/tm_*.png
+f2/g_*.pgm
 
 # Sistem
 Thumbs.db
