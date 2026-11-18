@@ -1,0 +1,17 @@
+# Sumber data — terlalu besar dan berisi citra lalu lintas yang dapat diidentifikasi
+recording*.mp4
+*.mkv
+*.avi
+*.mov
+
+# Intermediate pemrosesan (dapat diregenerasi dari video)
+frames/*.ppm
+frames/tm*.png
+frames/chk_*.png
+frames/mask*.png
+
+# Sistem
+Thumbs.db
+desktop.ini
+.DS_Store
+node_modules/
