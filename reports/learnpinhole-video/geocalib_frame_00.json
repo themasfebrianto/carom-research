@@ -1,0 +1,25 @@
+{
+  "image": "D:\\Kerjaan\\carom-research\\out\\learnpinhole-video\\frames\\frame_00.png",
+  "weights": "pinhole",
+  "camera_model": "pinhole",
+  "image_width": 480.0000305175781,
+  "image_height": 360.0,
+  "fx": 500.28094482421875,
+  "fy": 500.28094482421875,
+  "cx": 240.00001525878906,
+  "cy": 180.0,
+  "hfov_deg": 51.25690873955057,
+  "vfov_deg": 39.577244277693744,
+  "pitch_rad": -0.05558998882770538,
+  "pitch_deg_raw": -3.1850717430069175,
+  "pitch_deg_down_positive": 3.1850717430069175,
+  "roll_rad": 0.006022733170539141,
+  "roll_deg": 0.34507719180533786,
+  "gravity_vec3d": [
+    -0.006013995967805386,
+    -0.998437225818634,
+    -0.055561363697052
+  ],
+  "distortion": null,
+  "focal_uncertainty_px": 129.0700225830078
+}

@@ -130,6 +130,16 @@ Syarat agar combo ini cukup:
 
 **Putusan:** cukup untuk screening/kalibrasi awal; belum untuk penegakan ODOL. Untuk Cawang, dash fit + anchor `w` tetap yang utama. Detail: `reports/calib-compare/README.md`.
 
+**Uji video LearnPinhole (480x360):** GeoCalib multi f=501,8 cocok baseline 502; VP pitch/yaw 4,91/-1,66 cocok baseline 4,86/-1,75; AnyCalib median 528,2 (+5,2%, range 510-598); anchor lebar jalan tidak stabil karena jalan melengkung dan batas kanan keluar frame, sehingga anchor Avanza tetap lebih tepat. Detail: `reports/learnpinhole-video/README.md`.
+
+### 4.2.2 Dataset kalibrasi yang tersedia
+
+- **SVLD-3D**: `f`, `h`, pitch, yaw; **tanpa roll** dan distorsi; test set publik 2.237 gambar. Cocok untuk uji cepat `f/pitch/yaw/h`.
+- **I24-3D**: `P`, `H`, `H_inv`, `vps`, `corr_pts`, `space_pts`, `curve`; `f/h/yaw/pitch/roll` diturunkan dari `P`. Satu ZIP 49,8 GB, tidak bisa partial; **reference calibration**, bukan checkerboard.
+- **I24V**: 234 kamera 1080p, 234 jam; `H`/`P` static/dynamic; fokus tracking, bukan pengganti I24-3D; lebih besar.
+- **CUTC**: checkerboard/ChArUco, GT paling bersih; **RoScenes**: multi-kamera roadside.
+- Repo `I24-MOTION/I24-3D-dataset` adalah **toolkit** (`homography.py`, `scene.py`, `export_dataset.py`), bukan dataset. Detail dan link: `reports/DATASET-KALIBRASI.md`.
+
 ### 4.3 SVLD-3D
 
 - Test set: 2.237 citra, 8.142 objek; **7.396 Car, 745 Bus, 1 Truck**.

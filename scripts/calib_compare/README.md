@@ -54,6 +54,28 @@ node scripts\calib_compare\fit_compare.mjs
 `fit_compare.mjs` membaca `frames/dashes2.json`, `frames/vp.json`, dan semua
 JSON metode di `out/calib-compare/`, lalu menulis `out/calib-compare/fits.json`.
 
+### Video LearnPinhole
+
+Untuk klip `D:\Kerjaan\LearnPinhole\frontend\public\videos\clip-test-pengukuran.mp4`
+(480×360), ekstrak 8 frame lalu jalankan:
+
+```powershell
+& $py scripts\calib_compare\run_lane_vp.py `
+  out\learnpinhole-video\frames `
+  --backend D:\Kerjaan\LearnPinhole\backend `
+  --out out\learnpinhole-video\lane_vp.json
+
+& $py scripts\calib_compare\run_geocalib_multi.py `
+  out\learnpinhole-video\frames `
+  --out out\learnpinhole-video\geocalib_multi.json
+
+& $py scripts\calib_compare\run_anycalib_batch.py `
+  out\learnpinhole-video\frames --cam-id simple_pinhole `
+  --out out\learnpinhole-video\anycalib_simple.json
+```
+
+Hasil dan analisis ada di `reports/learnpinhole-video/README.md`.
+
 ## Hasil pokok
 
 Dengan `w = 3,60 m`:

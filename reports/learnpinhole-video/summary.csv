@@ -1,0 +1,10 @@
+method,f_px,hfov_deg,pitch_deg,yaw_deg,h_m,source,note
+LearnPinhole baseline,502.0,51.1,4.86,-1.75,6.26,"GeoCalib f + Avanza width","AGENTS.md baseline; h from reference vehicle"
+GeoCalib multi shared,501.80,51.12,3.08,,,GeoCalib 8 frames,"pitch is gravity, not road VP; uncertainty 0.011 px (overconfident)"
+GeoCalib single frame00,500.28,51.26,3.19,,,GeoCalib 1 frame,"uncertainty 129.1 px"
+GeoCalib single frame06,511.77,50.25,2.72,,,GeoCalib 1 frame,"uncertainty 133.2 px"
+GeoCalib single frame12,521.05,49.46,2.86,,,GeoCalib 1 frame,"uncertainty 136.5 px"
+AnyCalib simple median,528.22,,,,,AnyCalib 8 frames,"median f; range 510.10-597.90; +5.2% vs 502"
+VP only,501.80,51.12,4.913,-1.659,,lane_vp 8 frames,"median VP (254.59,136.87), inliers 30, RMS 1.87 px"
+Lane width anchor 3.50 m @ y=340,501.80,51.12,4.913,-1.659,6.27,"w=3.50; gap 113.2 px","h highly sensitive to gap; see sensitivity table"
+Lane width anchor 3.75 m @ y=340,501.80,51.12,4.913,-1.659,6.26,"w=3.75; gap 121.3 px","h matches baseline only if gap is 121.3 px"

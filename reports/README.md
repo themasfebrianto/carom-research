@@ -2,10 +2,10 @@
 
 Salinan kurasi dari folder kerja `out/`. Folder `out/` tetap di-`.gitignore` karena berisi gambar, mask, model, dan dataset; folder ini hanya memuat **laporan, ringkasan, dan tabel kecil** yang cukup untuk mengaudit angka di dokumen utama.
 
-- Dikumpulkan: 18 November 2026
-- HEAD saat dikumpulkan: `ddc4c9b`
+- Dikumpulkan: 19 November 2026
+- HEAD saat dikumpulkan: `f4dd9c3` (plus hasil uji video LearnPinhole yang belum di-commit)
 - Format: UTF-8; tidak ada citra, video, bobot model, atau dataset
-- Jumlah: 43 berkas, ±97 KB
+- Jumlah: 69 berkas, ±231 KB
 
 ## Indeks
 
@@ -19,6 +19,9 @@ Salinan kurasi dari folder kerja `out/`. Folder `out/` tetap di-`.gitignore` kar
 | `keypoint/` | Detectability keypoint dan mask-based fitting pada SVLD |
 | `timepass/` | Side-view Cawang dan fitting kontainer |
 | `calib-compare/` | GeoCalib vs AnyCalib vs VP vs Cawang dengan anchor `w=3,60 m` |
+| `learnpinhole-video/` | Uji combo pada video tes LearnPinhole (480×360) |
+| `geocalib-anycalib/` | Pros/cons GeoCalib vs AnyCalib + persiapan I24-3D |
+| `DATASET-KALIBRASI.md` | Perbandingan SVLD-3D, I24-3D, I24V, CUTC, RoScenes; parameter dan batasannya |
 
 ### `i24/`
 
@@ -91,6 +94,26 @@ Catatan: `container_fit_report.md` adalah percobaan lama dengan threshold warna 
 | `anycalib_*.json` | Keluaran AnyCalib `simple_pinhole`, `pinhole`, `radial:1`, dan varian model |
 
 Hasil pokok: Cawang dash fit tetap paling konsisten (RMS 1,101 px); GeoCalib `f` 9–13% terlalu rendah; AnyCalib +1,6% pada frame TEMA tetapi +9–12% pada frame lain; VP-only cukup untuk inisialisasi, bukan pengganti fitting.
+
+### `learnpinhole-video/`
+
+| Berkas | Isi |
+|---|---|
+| `README.md` | Uji combo GeoCalib + AnyCalib + VP + anchor lebar jalan pada video tes LearnPinhole |
+| `summary.csv` | Ringkasan f, pitch, yaw, h baseline dan hasil uji |
+| `lane_vp.json` | VP per frame dari `lane_vp.detect_lane_vp` |
+| `geocalib_*.json` | GeoCalib multi-frame dan single-frame |
+| `anycalib_simple.json` | AnyCalib 8 frame |
+
+Hasil pokok: GeoCalib multi `f=501,80` cocok dengan baseline `≈502`; VP pitch/yaw `4,91°/−1,66°` cocok dengan baseline `4,86°/−1,75°`; AnyCalib median `528,22` (+5,2%, range 510–598); anchor lebar jalan tidak stabil karena jalan melengkung dan batas kanan keluar frame.
+
+### `geocalib-anycalib/`
+
+| Berkas | Isi |
+|---|---|
+| `README.md` | Pros/cons GeoCalib vs AnyCalib, alasan VP + anchor tetap wajib, dan persiapan test I24-3D |
+
+Ringkas: GeoCalib/AnyCalib hanya estimator intrinsik/pose awal; yaw tetap dari VP dan skala tetap dari anchor. I24-3D cukup dimulai dari `scene1_hg.json` + satu video kamera, bukan 50 GB.
 
 ## Cara mereproduksi
 
