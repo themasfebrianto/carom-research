@@ -1,8 +1,13 @@
 #!/usr/bin/env python
-"""Compare GeoCalib output with I24-3D ground-truth calibration.
+"""Compare GeoCalib output with an I24-3D parsed calibration.
 
 GeoCalib uses negative pitch for looking down; the I24-3D parser returns a
 positive magnitude. This script compares absolute pitch magnitudes.
+
+The I24-3D ``hg`` release does not provide physical ``fx``: its ``P[:,2]``
+column is scaled arbitrarily.  The parser therefore omits ``fx`` by default,
+and rows whose camera has no ``fx`` are marked ``NO_F_GT`` instead of being
+scored against a fabricated intrinsic.
 """
 
 from __future__ import annotations
@@ -28,17 +33,33 @@ def pct(values, q):
     return values[idx]
 
 
+def load_gt(path: str, direction: str) -> dict:
+    doc = json.loads(Path(path).read_text(encoding="utf-8-sig"))
+    if "directions" in doc:
+        if direction not in doc["directions"]:
+            available = ", ".join(doc["directions"])
+            raise SystemExit(
+                f"direction {direction!r} not in GT JSON; available: {available}"
+            )
+        return doc["directions"][direction]
+    if "calibrations" in doc:
+        return doc["calibrations"]
+    return doc
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--geo", required=True, help="GeoCalib JSON (list)")
-    ap.add_argument("--gt", required=True, help="parsed GT JSON (camera -> dict)")
+    ap.add_argument("--gt", required=True, help="parsed GT JSON")
     ap.add_argument("--out", required=True, help="output CSV")
+    ap.add_argument("--direction", default="EB", choices=["EB", "WB"],
+                    help="EB/WB block to compare against")
     ap.add_argument("--f-tol", type=float, default=0.05)
     ap.add_argument("--pitch-tol", type=float, default=2.0)
     args = ap.parse_args()
 
     geo = json.loads(Path(args.geo).read_text(encoding="utf-8-sig"))
-    gt = json.loads(Path(args.gt).read_text(encoding="utf-8-sig"))
+    gt = load_gt(args.gt, args.direction)
 
     rows = []
     for r in geo:
@@ -50,6 +71,14 @@ def main() -> None:
         if cam not in gt:
             rows.append({"image": r["image"], "camera": cam, "status": "NO_GT",
                          "note": "camera not in GT JSON"})
+            continue
+        if "fx" not in gt[cam]:
+            rows.append({
+                "image": r["image"], "camera": cam, "status": "NO_F_GT",
+                "note": ("I24-3D hg has no physical fx (P[:,2] scale is "
+                         "arbitrary; run parser with --legacy-rq only for "
+                         "diagnostics)"),
+            })
             continue
 
         f_geo = float(r["f_px"])

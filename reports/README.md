@@ -3,9 +3,9 @@
 Salinan kurasi dari folder kerja `out/`. Folder `out/` tetap di-`.gitignore` karena berisi gambar, mask, model, dan dataset; folder ini hanya memuat **laporan, ringkasan, dan tabel kecil** yang cukup untuk mengaudit angka di dokumen utama.
 
 - Dikumpulkan: 19 November 2026
-- HEAD saat dikumpulkan: `f4dd9c3` (plus hasil uji video LearnPinhole yang belum di-commit)
+- HEAD saat dikumpulkan: `9657fd1` (plus perubahan lokal parser & laporan I24-3D)
 - Format: UTF-8; tidak ada citra, video, bobot model, atau dataset
-- Jumlah: 69 berkas, ±231 KB
+- Jumlah: 77 berkas
 
 ## Indeks
 
@@ -14,8 +14,10 @@ Salinan kurasi dari folder kerja `out/`. Folder `out/` tetap di-`.gitignore` kar
 | `00-akses.md` | Status akses dataset dan lisensi |
 | `00-environment.md` | Mesin, environment, dan verifikasi |
 | `external-setup.md` | Cara membuat environment dan mengunduh bobot |
-| `i24/` | Uji parser I24-3D (sintetis, bukan data nyata) |
-| `svld/` | Validasi SVLD-3D: kalibrasi, geometri, sensitivitas, subset sudut |
+| `i24/` | Uji parser I24-3D (sintetis); validasi data nyata ada di `i24-3d-kalibrasi/` |
+| `i24-3d-kalibrasi/` | **Data nyata I24-3D**: 102 kalibrasi, konsistensi EB/WB, uji GeoCalib, keputusan GT |
+| `svld/` | Validasi SVLD-3D test: kalibrasi, geometri, sensitivitas, subset sudut |
+| `svld-trainval/` | **SVLD-3D trainval**: 14.592 gambar, 700 Truck, 1.166 Bus; kalibrasi, fit truk/bus, peringatan `veh_size` preset |
 | `keypoint/` | Detectability keypoint dan mask-based fitting pada SVLD |
 | `timepass/` | Side-view Cawang dan fitting kontainer |
 | `calib-compare/` | GeoCalib vs AnyCalib vs VP vs Cawang dengan anchor `w=3,60 m` |
@@ -32,7 +34,17 @@ Salinan kurasi dari folder kerja `out/`. Folder `out/` tetap di-`.gitignore` kar
 | `geo_smoke.json` | Keluaran GeoCalib pada dua citra uji |
 | `geocalib_smoke.json` | Ringkasan GeoCalib pada dua citra uji |
 
-**Bukan validasi I24-3D.** Data I24-3D belum tersedia; berkas ini hanya membuktikan parser dan evaluator berjalan. Hasil nyata menunggu persetujuan akses.
+**Bukan validasi I24-3D.** Berkas di `i24/` adalah uji smoke sintetis. Data nyata sudah tersedia dan hasilnya ada di `i24-3d-kalibrasi/`.
+
+### `i24-3d-kalibrasi/`
+
+| Berkas | Isi |
+|---|---|
+| `README.md` | Laporan lengkap: struktur dataset, 102 kalibrasi, EB vs WB, GeoCalib single/multi-frame, keputusan |
+| `summary.csv` | 9 baris pilot: GT f/pitch vs GeoCalib untuk p2c3, p1c5, p3c6 × 3 scene |
+| `ground_rms.csv` | 102 baris ground RMS `H_inv` → `corr_pts` per scene/arah/kamera |
+
+Hasil pokok: `f` EB vs WB berbeda median 7,1% (p90 24,6%); `P` bukan matriks kamera terkalibrasi; GeoCalib f meleset −52% s/d +26% dan pitch 9–65°. Gerbang kalibrasi Fase 1 dibatalkan; I24-3D dipakai untuk GT dimensi/ground-plane, bukan f/pose.
 
 ### `svld/`
 
@@ -58,6 +70,20 @@ Tiga CSV mentah berukuran besar **tidak disertakan** (lihat §Lisensi):
 - `sensitivity.csv` (495 KB) — satu baris per objek per level noise.
 
 Angka yang dipakai di dokumen utama semuanya ada di `summary.json`, `*_summary.json`, dan laporan MD. CSV tersebut dapat diregenerasi dengan perintah di bawah.
+
+**Penting:** `veh_size` SVLD adalah preset ukuran, bukan pengukuran per kendaraan. MAPE 0,36% adalah self-consistency geometri; lihat `../reports/svld-trainval/README.md` §4.
+
+### `svld-trainval/`
+
+| Berkas | Isi |
+|---|---|
+| `README.md` | Inventaris trainval, verifikasi kalibrasi, uji fit truk/bus, peringatan preset |
+| `inventory.csv` | 14.592 gambar, 39.477 objek (37.611 Car, 1.166 Bus, 700 Truck), 13,47 GB |
+| `calib_reproj.csv` | 5 scene: median 0,73–0,84 px, maks 1,11 px, 0 objek >2 px |
+| `fit_summary.csv` | 120 Truck, 80 Bus-D, 94 Bus-E: MAPE, eL/eW/eH, RMS |
+| `fit_distance.csv` | Galat panjang per jarak: 0,15% (<35 m) → 4,39% (>150 m) |
+
+Hasil pokok: kalibrasi trainval konsisten; box 20 m dan bus 12,6 m dapat direkonstruksi; **panjang memburuk dengan jarak**, W/H stabil. Label dimensi adalah preset, jadi bukan accuracy claim.
 
 ### `keypoint/`
 

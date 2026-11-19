@@ -20,7 +20,7 @@ import json
 import math
 import random
 import statistics
-from collections import defaultdict
+from collections import Counter, defaultdict
 from pathlib import Path
 import xml.etree.ElementTree as ET
 
@@ -110,7 +110,7 @@ def fit_object(obs: np.ndarray, calib: dict, width: int, height: int,
     }
     L0, W0, H0 = priors.get(cls, (5.0, 2.0, 2.0))
     lo = np.array([-500.0, -500.0, -math.pi, 2.0, 1.0, 1.0])
-    hi = np.array([500.0, 500.0, math.pi, 20.0, 3.5, 4.5])
+    hi = np.array([500.0, 500.0, math.pi, 25.0, 3.5, 4.5])
 
     best = None
     for rev in (False, True):
@@ -172,13 +172,22 @@ def parse_annotation(path: Path, calib_dir: Path):
     return objects
 
 
-def select_objects(objects, n: int, seed: int):
+def select_objects(objects, n: int, seed: int, classes: list[str] | None = None):
     rng = random.Random(seed)
-    bins = [("near", 0, 35), ("mid", 35, 65), ("far", 65, 200)]
+    bins = [("near", 0, 35), ("mid", 35, 65), ("far", 65, 2000)]
+    available = [
+        cls for cls in ("Car", "Bus", "Truck")
+        if any(o["class"] == cls for o in objects)
+    ]
+    if classes:
+        available = [cls for cls in available if cls in classes]
+    if not available:
+        raise SystemExit(f"no objects for classes={classes!r}")
+
+    per_bin = max(1, math.ceil(n / (len(available) * len(bins))))
     selected = []
-    for cls in ("Car", "Bus"):
+    for cls in available:
         pool = [o for o in objects if o["class"] == cls]
-        per_bin = max(1, math.ceil(n / (2 * len(bins))))
         for _, lo, hi in bins:
             cand = [o for o in pool if lo <= o["distance_m"] < hi]
             rng.shuffle(cand)
@@ -207,6 +216,8 @@ def main() -> None:
     ap.add_argument("--out", default=r"out\svld")
     ap.add_argument("--n", type=int, default=50)
     ap.add_argument("--seed", type=int, default=42)
+    ap.add_argument("--classes", default=None,
+                    help="comma-separated subset, e.g. Truck or Bus,Truck")
     ap.add_argument("--limit-annotations", type=int, default=0)
     args = ap.parse_args()
 
@@ -223,10 +234,11 @@ def main() -> None:
         if i % 500 == 0:
             print(f"  {i}/{len(anns)} annotations...", flush=True)
 
-    selected = select_objects(objects, args.n, args.seed)
+    classes = [c.strip() for c in args.classes.split(",")] if args.classes else None
+    selected = select_objects(objects, args.n, args.seed, classes)
+    counts = Counter(o["class"] for o in selected)
     print(f"selected {len(selected)} objects "
-          f"({sum(o['class']=='Car' for o in selected)} Car, "
-          f"{sum(o['class']=='Bus' for o in selected)} Bus)")
+          f"({', '.join(f'{cls} {n}' for cls, n in sorted(counts.items()))})")
 
     rows = []
     for i, obj in enumerate(selected, 1):
@@ -282,7 +294,7 @@ def main() -> None:
         summary["eW_pct"] = stats([r["eW_pct"] for r in ok])
         summary["eH_pct"] = stats([r["eH_pct"] for r in ok])
         summary["rms_px"] = stats([r["rms_px"] for r in ok])
-        for cls in ("Car", "Bus"):
+        for cls in sorted({r["class"] for r in ok}):
             sub = [r for r in ok if r["class"] == cls]
             if sub:
                 summary[f"{cls}_mape_pct"] = stats(

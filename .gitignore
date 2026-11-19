@@ -21,6 +21,8 @@ f2/g_*.pgm
 # Dataset eksternal dan hasil validasi — tidak masuk git
 data/
 out/
+I24-3D/
+SVLD-3D-TRAINVAL-*/
 
 # Sistem
 Thumbs.db

@@ -8,7 +8,7 @@ Ringkasan seluruh uji pada SVLD-3D: kalibrasi, geometri, sensitivitas, subset su
 |---|---|---|
 | Kalibrasi SVLD | reproyeksi 8.142 objek, median 0,74 px | **terverifikasi** |
 | GeoCalib pada 5 scene SVLD | 1/5 lulus f<5% dan pitch<2° | **tidak reliabel** |
-| Geometri 50 objek (8 sudut GT) | MAPE 0,36%, RMS 0,35 px | **terverifikasi** |
+| Geometri 50 objek (8 sudut GT) | MAPE 0,36%, RMS 0,35 px | **self-consistency** (label preset; lihat §4) |
 | Sensitivitas noise 3 px | MAPE 2,79%, 1,7% gagal | **target keypoint ≤3 px** |
 | Subset 5 titik | MAPE 0,48% | **cukup** |
 | Keypoint zero-shot (20 citra) | 5/5 36,1% semua GT; Car 44,1%, Bus 0% | **belum cukup** |
@@ -25,7 +25,7 @@ SVLD menyediakan `f`, `fi` (pitch), `theta` (yaw), dan `h` per scene. Verifikasi
 - maksimum **1,08 px**
 - 0 objek >2 px
 
-Kalibrasi SVLD konsisten. Ini menjadi ground truth yang sah untuk geometri dan dimensi.
+Kalibrasi SVLD konsisten dan sah untuk geometri. **Dimensi `veh_size` adalah preset**, bukan pengukuran per kendaraan; lihat §4 dan `reports/svld-trainval/README.md`.
 
 ## 3. GeoCalib
 
@@ -54,6 +54,14 @@ Hanya **1/5** lulus. Kalibrasi XML SVLD benar, jadi ini domain gap GeoCalib pada
 | RMS | 0,35 px | 0,35 px | 0,41 px | 0,46 px |
 
 Geometri, satuan, dan model kamera benar. Ini uji dengan sudut GT, bukan detektor.
+
+> **Penting — 19 November 2026.** `veh_size` SVLD adalah **preset ukuran**, bukan hasil pengukuran per kendaraan:
+>
+> - Trainval: **1.164 dari 1.166 Bus** memiliki `L=12,60 m`; 184 Truck memiliki `L=20,00 m`.
+> - Test: Bus memakai `L=12,00 m` atau `9,46 m`.
+> - Car juga memakai preset: hanya 116 nilai `L` unik untuk 37.611 objek; 5 nilai teratas mencakup ~17.000 objek.
+>
+> Karena `vertex2d`, `vertex3d`, dan `veh_size` dibangun dari box yang sama, fit 8 sudut akan selalu mengembalikan `veh_size` hampir tepat. **MAPE 0,36% adalah bukti kalibrasi/parameterisasi, bukan akurasi fisik.** Trainval (700 Truck, 1.166 Bus) cocok untuk stress-test, bukan klaim akurasi dunia nyata. Detail: `reports/svld-trainval/README.md`.
 
 ## 5. Sensitivitas dan subset
 
@@ -110,7 +118,7 @@ Lebar dan tinggi layak untuk screening (<10%); panjang tidak. Mask body tidak me
 **Terbukti:**
 
 - Kalibrasi SVLD dapat dipercaya (0,74 px).
-- Geometri pengukuran benar: dengan 2D sempurna, MAPE 0,36%.
+- Parameterisasi box dan kalibrasi benar: dengan 2D sempurna, MAPE 0,36% (self-consistency, bukan akurasi fisik).
 - Lima titik cukup; target akurasi ≤3 px.
 - Mask-based memberi W/H ~7%, cukup untuk screening.
 - GeoCalib tidak reliabel pada 4/5 scene SVLD; gerbang SOP perlu.
@@ -136,9 +144,10 @@ Untuk panjang, diperlukan multi-frame, multi-kamera, atau model bentuk yang lebi
 ## 10. Langkah berikutnya
 
 1. **Hybrid** — mask untuk W/H, keypoint kontak tanah untuk L; uji pada 50 objek.
-2. **Multi-frame/multi-kamera** — I24-3D (16–17 kamera) untuk membuktikan panjang bisa diselamatkan; tunggu akses.
-3. **Fine-tune keypoint** — butuh GPU; `vehicle-keypoints` atau SKoPe3D.
-4. **Validasi lapangan Indonesia** — satu kendaraan diukur dengan meteran; tetap diperlukan.
+2. **Multi-frame/multi-kamera** — I24-3D sudah tersedia, tetapi bukan GT f/pose dan bukan side-view; lihat `reports/i24-3d-kalibrasi/README.md`.
+3. **Trainval SVLD** — 14.592 gambar, 700 Truck + 1.166 Bus; gunakan untuk stress-test panjang/kelas besar, bukan accuracy claim. Lihat `reports/svld-trainval/README.md`.
+4. **Fine-tune keypoint** — butuh GPU; `vehicle-keypoints` atau SKoPe3D.
+5. **Validasi lapangan Indonesia** — satu kendaraan diukur dengan meteran; tetap diperlukan.
 
 **Catatan Cawang.** Side-view/lower-envelope pada satu kamera sudah dicoba: truk kontainer 40 ft terukur **14,0–14,3 m** (pembanding standar ≈14,6 m) dan batch 6 kendaraan memberi **6,4–17,4 m** yang masuk akal untuk box truck, 20 ft, 40 ft, dan truk panjang. Kecepatan belum stabil. **Validasi 20 ft dengan mask container-only: 6,046 m vs 6,058 m (−0,2%)** — hasil GT pertama yang bersih. Lihat `HASIL-TIMEPASS-CAWANG.md`.
 
@@ -150,4 +159,5 @@ Untuk panjang, diperlukan multi-frame, multi-kamera, atau model bentuk yang lebi
 - `out/svld/subsets_report.md`
 - `out/keypoint/detectability_report.md`
 - `out/keypoint/mask_fit_report.md`
+- `reports/svld-trainval/README.md` + `inventory.csv` + `calib_reproj.csv` + `fit_summary.csv` + `fit_distance.csv`
 - `scripts/svld_reproj_check.py`, `svld_fit_dims.py`, `svld_sensitivity.py`, `svld_subsets.py`, `svld_kp_detectability.py`, `svld_mask_fit.py`

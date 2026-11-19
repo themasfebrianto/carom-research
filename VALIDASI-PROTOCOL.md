@@ -14,8 +14,8 @@ Dokumen ini mengunci definisi dan ambang sebelum data dilihat. Tujuannya mencega
 
 | Sumber | Peran | Jumlah yang dipakai | Lisensi |
 |---|---|---|---|
-| I24-3D | ground truth kalibrasi + dimensi | 3 scene, 16–17 kamera, 3 frame/kamera; 100 kendaraan round-trip; 50 kendaraan persepsi | non-komersial, registrasi |
-| SVLD-3D | ground truth bus/kendaraan besar | 200 citra test: 70 car, 130 bus | riset; lisensi tidak dinyatakan |
+| I24-3D | ground-plane + dimensi 3D; **bukan GT f/pose** | 3 scene, 16–18 kamera; 876.948 box, 720 objek | non-komersial, registrasi |
+| SVLD-3D | kalibrasi + geometri bus/truk; **`veh_size` preset** | test 2.237 citra; trainval 14.592 citra (700 Truck, 1.166 Bus) | riset; lisensi tidak dinyatakan |
 | SKoPe3D | pre-train keypoint sudut CCTV | subset 5.000–25.000 citra | paper CC BY-NC-SA |
 | Cawang/ATP | uji domain nyata | 50 frame, 100 frame fine-tune | milik proyek |
 
@@ -32,10 +32,10 @@ Dokumen ini mengunci definisi dan ambang sebelum data dilihat. Tujuannya mencega
 
 ### SVLD-3D
 
-- 200 citra test: 70 car, 130 bus.
+- Test: 200 citra (70 car, 130 bus). Trainval: 14.592 citra, 700 Truck + 1.166 Bus; gunakan untuk stress-test kelas besar/panjang, bukan accuracy claim.
 - Sebar jarak dan sudut pandang; catat oklusi.
 - Jangan memilih hanya kendaraan yang mudah.
-- **Truck hanya 1 objek di test set.** Jangan memakai SVLD-3D untuk klaim truk. Truk diuji di I24-3D atau RoScenes; bus dipakai sebagai proxy kendaraan besar.
+- **Truck test hanya 1 objek**, tetapi trainval punya 700 Truck. **`veh_size` adalah preset**, bukan pengukuran per kendaraan; jangan klaim akurasi fisik dari fit 8 sudut. Truk tetap perlu pengukuran lapangan/I24/RoScenes untuk GT fisik.
 - **Kalibrasi:** `f` (px), `fi` = pitch (rad), `theta` = yaw (rad), `h` (mm). Jangan menukar `fi` dan `theta`.
 
 ## 4. Metrik
@@ -80,10 +80,10 @@ $$
 
 | Tahap | Lulus | Gagal → tindakan |
 |---|---|---|
-| Kalibrasi I24-3D | median $\Delta f/f<5\%$, median $\Delta\theta<2^\circ$, ≥80% kamera | stop; revisi kalibrasi |
+| Kalibrasi I24-3D | **tidak berlaku** — `hg` bukan GT f/pose | gunakan SVLD/pengukuran lapangan |
 | Round-trip formula | <1% | perbaiki konvensi/urutan sudut |
 | Dimensi I24-3D | $W/H$ <10% pada 20–30 m | batasi klaim; jangan lanjut ke ODOL |
-| SVLD-3D | truk/bus <15% | dokumentasikan; turunkan klaim |
+| SVLD-3D | kalibrasi <2 px; dimensi **self-consistency**, bukan accuracy | dokumentasikan; jangan klaim fisik |
 | Keypoint + shape | PCK >80%, RMS ≤3 px, $L/W/H$ <10% | hasil negatif; klaim adaptasi tidak terbukti |
 | Anchor naver/cctv | pergeseran <5% untuk prior ±5% | hanya inisialisasi, bukan anchor |
 | MoGe-2 | $h$ <10% dari anchor | 10–20% peringatan; >20% buang |
@@ -92,6 +92,6 @@ $$
 
 - Setiap laporan menyebut jumlah sampel, jumlah yang gagal diproses, dan alasan.
 - Jangan membuang outlier tanpa menyebutkannya; laporkan dengan dan tanpa outlier.
-- Jangan mengklaim akurasi lebih baik dari ketidakpastian ground truth (I24-3D ±15 cm).
+- Jangan mengklaim akurasi lebih baik dari ketidakpastian ground truth (I24-3D ±15 cm). **`veh_size` SVLD adalah preset**, jadi tidak bisa dipakai sebagai ketidakpastian fisik.
 - Setiap angka harus bisa dihasilkan ulang dari skrip yang disimpan.
 - Dataset non-komersial hanya dipakai untuk validasi; bukan untuk melatih model produksi.

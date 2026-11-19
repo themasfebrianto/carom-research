@@ -1,9 +1,30 @@
 #!/usr/bin/env python
-"""Parse I24-3D sceneX_hg.json into camera intrinsics/extrinsics.
+"""Parse I24-3D ``sceneX_hg.json`` calibration files.
 
-The dataset README writes P as [4,3], while the standard projection matrix is
-3x4. This script accepts either shape and normalises it. Run --self-test first
-to verify the conventions without the real dataset.
+The released file is keyed by direction::
+
+    {"EB": {"p1c1": {...}, ...}, "WB": {...}}
+
+Each camera entry contains ``H``, ``H_inv``, ``P``, ``vps``, ``corr_pts``,
+``space_pts`` and ``curve``.  ``P`` is **not** a calibrated camera matrix:
+the official toolkit (``I24-3D-dataset/homography.py``) builds it as::
+
+    P[:, 0] = H_inv[:, 0]
+    P[:, 1] = H_inv[:, 1]
+    P[:, 3] = H_inv[:, 2]
+    P[:, 2] = [vps[2][0], vps[2][1], 1] * 0.01   # arbitrary scale
+
+``Homography.scale_Z()`` is needed before ``P`` carries metric height.  As a
+result, RQ-decomposing ``P`` does **not** recover physical ``fx/fy/cx/cy`` or
+camera height.  The default output therefore reports only quantities that are
+defined by the released data:
+
+* ``ground_rms_px`` / ``ground_max_px`` -- ``H_inv(space_pts)`` vs ``corr_pts``
+* ``horizon_line`` -- third row of ``H``, the image of the space plane's line
+  at infinity (a projective invariant of ``H``)
+
+Use ``--legacy-rq`` to also emit the old ``fx/fy/...`` block for diagnostics;
+those values are not ground truth.
 """
 
 from __future__ import annotations
@@ -16,6 +37,9 @@ from pathlib import Path
 import numpy as np
 from scipy.linalg import rq
 
+IMAGE_REFERENCE = (1920, 1080)
+WORLD_UNIT = "feet"
+
 
 def as_3x4(P) -> np.ndarray:
     P = np.asarray(P, dtype=float)
@@ -27,12 +51,11 @@ def as_3x4(P) -> np.ndarray:
 
 
 def decompose(P) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Return K, R, t with P = K [R | t]."""
+    """Return K, R, t with P = K [R | t] (diagnostic only for I24-3D)."""
     P = as_3x4(P)
     M = P[:, :3]
     K, R = rq(M)
 
-    # Make the diagonal of K positive, then normalise K[2, 2] = 1.
     signs = np.sign(np.diag(K))
     signs[signs == 0] = 1.0
     D = np.diag(signs)
@@ -42,7 +65,6 @@ def decompose(P) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         raise ValueError("degenerate K: K[2,2] is zero")
     K = K / K[2, 2]
 
-    # A valid pinhole camera has positive focal lengths.
     if K[0, 0] < 0:
         K[:, 0] *= -1
         R[0, :] *= -1
@@ -82,34 +104,80 @@ def pose_from_R(R: np.ndarray) -> dict:
     return {"pitch_deg": pitch, "roll_deg": roll, "yaw_deg": yaw}
 
 
-def parse_camera(entry: dict) -> dict:
+def is_camera_entry(value) -> bool:
+    return isinstance(value, dict) and "P" in value
+
+
+def iter_calibrations(hg: dict):
+    """Yield ``(direction, camera, entry)`` for flat and EB/WB files."""
+    if not hg:
+        raise ValueError("empty calibration file")
+    if all(is_camera_entry(v) for v in hg.values()):
+        for cam, entry in hg.items():
+            yield None, cam, entry
+        return
+    for direction, cameras in hg.items():
+        if not isinstance(cameras, dict):
+            raise ValueError(f"unexpected top-level value for {direction!r}")
+        for cam, entry in cameras.items():
+            if not is_camera_entry(entry):
+                raise ValueError(
+                    f"unexpected entry {direction!r}/{cam!r}: missing 'P'"
+                )
+            yield direction, cam, entry
+
+
+def ground_metrics(entry: dict) -> dict:
+    """Metrics of the released ground-plane mapping (H_inv)."""
+    H = np.asarray(entry["H"], dtype=float)
+    H_inv = np.asarray(entry["H_inv"], dtype=float)
+    if H.shape != (3, 3) or H_inv.shape != (3, 3):
+        raise ValueError(f"H/H_inv must be 3x3, got {H.shape}/{H_inv.shape}")
+
+    P = as_3x4(entry["P"])
+    space = np.asarray(entry["space_pts"], dtype=float)
+    corr = np.asarray(entry["corr_pts"], dtype=float)
+    if space.shape[1] == 2:
+        space_xyz = np.hstack([space, np.zeros((space.shape[0], 1))])
+    else:
+        space_xyz = space
+    pred = project(P, space_xyz)
+    err = np.linalg.norm(pred - corr, axis=1)
+
+    # Third row of H is the image of the space plane's line at infinity.
+    line = H[2, :]
+    norm = math.hypot(float(line[0]), float(line[1]))
+    horizon = (line / norm).tolist() if norm > 0 else line.tolist()
+
+    return {
+        "n_corr": int(corr.shape[0]),
+        "ground_rms_px": round(float(np.sqrt(np.mean(err**2))), 4),
+        "ground_max_px": round(float(np.max(err)), 4),
+        "horizon_line": [round(float(x), 8) for x in horizon],
+        "curve": [float(x) for x in entry.get("curve", [])],
+        "vps": [[float(x) for x in vp] for vp in entry.get("vps", [])],
+        "P_z_column": [round(float(x), 8) for x in P[:, 2]],
+    }
+
+
+def legacy_rq(entry: dict) -> dict:
+    """Old RQ(P) block, kept only for diagnostics."""
     P = as_3x4(entry["P"])
     K, R, t = decompose(P)
     C = camera_center(P)
-    pose = pose_from_R(R)
-
-    out = {
-        "fx": float(K[0, 0]),
-        "fy": float(K[1, 1]),
-        "cx": float(K[0, 2]),
-        "cy": float(K[1, 2]),
-        "height_m": float(C[2]),
-        "camera_center": [float(x) for x in C],
-        **pose,
+    _ = t
+    return {
+        "fx": round(float(K[0, 0]), 4),
+        "fy": round(float(K[1, 1]), 4),
+        "cx": round(float(K[0, 2]), 4),
+        "cy": round(float(K[1, 2]), 4),
+        "camera_center_world": [round(float(x), 4) for x in C],
+        **{k: round(v, 4) for k, v in pose_from_R(R).items()},
+        "rq_warning": (
+            "RQ(P) is not physical: P[:,2] is a vertical-VP column with an "
+            "arbitrary 0.01 scale. Do not use as ground truth."
+        ),
     }
-
-    # Optional round-trip check against the labelled correspondences.
-    if "space_pts" in entry and "corr_pts" in entry:
-        space = np.asarray(entry["space_pts"], dtype=float)
-        corr = np.asarray(entry["corr_pts"], dtype=float)
-        if space.shape[1] == 2:
-            space = np.hstack([space, np.zeros((space.shape[0], 1))])
-        pred = project(P, space)
-        err = np.linalg.norm(pred - corr, axis=1)
-        out["roundtrip_rms_px"] = float(np.sqrt(np.mean(err**2)))
-        out["roundtrip_max_px"] = float(np.max(err))
-
-    return out
 
 
 def self_test() -> None:
@@ -132,7 +200,6 @@ def self_test() -> None:
     t = -R @ C
     P = K @ np.hstack([R, t[:, None]])
 
-    # Points on the road plane, in front of the camera.
     X = np.array([
         [10.0, -3.0, 0.0],
         [20.0, 0.0, 0.0],
@@ -142,25 +209,22 @@ def self_test() -> None:
     uv = project(P, X)
 
     for shape_name, P_in in (("3x4", P), ("4x3", P.T)):
-        parsed = parse_camera({"P": P_in.tolist(),
-                               "space_pts": X[:, :2].tolist(),
-                               "corr_pts": uv.tolist()})
-        assert abs(parsed["fx"] - f) < 1e-6, (shape_name, parsed)
-        assert abs(parsed["fy"] - f) < 1e-6, (shape_name, parsed)
-        assert abs(parsed["cx"] - cx) < 1e-6, (shape_name, parsed)
-        assert abs(parsed["cy"] - cy) < 1e-6, (shape_name, parsed)
-        assert abs(parsed["height_m"] - height) < 1e-6, (shape_name, parsed)
-        assert abs(parsed["pitch_deg"] - 10.0) < 1e-6, (shape_name, parsed)
-        assert abs(parsed["yaw_deg"] - 20.0) < 1e-6, (shape_name, parsed)
-        assert parsed["roundtrip_rms_px"] < 1e-9, (shape_name, parsed)
-        print(f"{shape_name}: OK  f={parsed['fx']:.3f}  "
-              f"pitch={parsed['pitch_deg']:.3f}  h={parsed['height_m']:.3f}")
+        K_out, _, _ = decompose(P_in)
+        assert abs(K_out[0, 0] - f) < 1e-6, (shape_name, K_out)
+        assert abs(K_out[1, 1] - f) < 1e-6, (shape_name, K_out)
+        assert abs(K_out[0, 2] - cx) < 1e-6, (shape_name, K_out)
+        assert abs(K_out[1, 2] - cy) < 1e-6, (shape_name, K_out)
+        print(f"{shape_name}: OK  f={K_out[0, 0]:.3f}")
 
 
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--hg", help="path to sceneX_hg.json")
     ap.add_argument("--out", help="output JSON")
+    ap.add_argument("--direction", choices=["EB", "WB"],
+                    help="write only this direction")
+    ap.add_argument("--legacy-rq", action="store_true",
+                    help="also emit the non-physical RQ(P) block")
     ap.add_argument("--self-test", action="store_true")
     args = ap.parse_args()
 
@@ -170,13 +234,72 @@ def main() -> None:
     if not args.hg:
         ap.error("--hg or --self-test is required")
 
-    hg = json.loads(Path(args.hg).read_text(encoding="utf-8-sig"))
-    parsed = {cam: parse_camera(entry) for cam, entry in hg.items()}
-    text = json.dumps(parsed, indent=2)
+    path = Path(args.hg)
+    hg = json.loads(path.read_text(encoding="utf-8-sig"))
+    rows = list(iter_calibrations(hg))
+    nested = any(direction is not None for direction, _, _ in rows)
+
+    directions: dict[str, dict] = {}
+    flat: dict[str, dict] = {}
+    for direction, cam, entry in rows:
+        if args.direction and direction != args.direction:
+            continue
+        item = ground_metrics(entry)
+        if args.legacy_rq:
+            item["legacy_rq"] = legacy_rq(entry)
+        if nested:
+            directions.setdefault(direction, {})[cam] = item
+        else:
+            flat[cam] = item
+
+    if not directions and not flat:
+        raise SystemExit(f"no calibration for direction {args.direction!r}")
+
+    rms = [
+        item["ground_rms_px"]
+        for group in ([*directions.values()] if nested else [flat])
+        for item in group.values()
+    ]
+    summary = {
+        "n_calibrations": len(rms),
+        "ground_rms_median_px": round(float(np.median(rms)), 4) if rms else None,
+        "ground_rms_max_px": round(float(np.max(rms)), 4) if rms else None,
+        "pass_1px": int(sum(v < 1.0 for v in rms)),
+        "pass_5px": int(sum(v < 5.0 for v in rms)),
+    }
+
+    doc = {
+        "source": str(path),
+        "format": "direction" if nested else "flat",
+        "units": {"world": WORLD_UNIT, "image_reference": IMAGE_REFERENCE},
+        "notes": [
+            "P[:,2] is a vertical-VP column scaled by an arbitrary 0.01; "
+            "RQ(P) is not a physical calibration (see I24-3D homography.py).",
+            "ground_rms_px is H_inv(space_pts) vs corr_pts in the released "
+            "road-aligned space frame.",
+            "I24-3D hg does not provide fx/fy/height ground truth.",
+        ],
+        "summary": summary,
+    }
+    if nested:
+        doc["directions"] = directions
+    else:
+        doc["calibrations"] = flat
+
+    text = json.dumps(doc, indent=2, ensure_ascii=False)
     if args.out:
-        Path(args.out).parent.mkdir(parents=True, exist_ok=True)
-        Path(args.out).write_text(text, encoding="utf-8")
-        print(f"wrote {args.out} ({len(parsed)} cameras)")
+        out = Path(args.out)
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(text, encoding="utf-8")
+        counts = ", ".join(
+            f"{d}={len(cams)}" for d, cams in directions.items()
+        ) if nested else f"flat={len(flat)}"
+        print(f"wrote {out} ({summary['n_calibrations']} calibrations: {counts})")
+        print(
+            "ground RMS px: median={ground_rms_median_px} "
+            "max={ground_rms_max_px}; <1px {pass_1px}/{n_calibrations}, "
+            "<5px {pass_5px}/{n_calibrations}".format(**summary)
+        )
     else:
         print(text)
 

@@ -1,0 +1,10 @@
+scene,camera,gt_f_eb,gt_f_wb,gt_df_pct,gt_pitch_eb,gt_pitch_wb,gt_horizon_row,gt_height_m,gt_eb_plausible,gt_wb_plausible,geo_f_min,geo_f_median,geo_f_max,geo_pitch_down_positive,geo_roll,geo_multi_f,geo_multi_pitch_down_positive,geo_multi_roll,note
+scene1,p2c3,1715.1,1341.9,24.42,70.95,74.88,-4426.8,-42.5,True,True,1760.1,1976.9,2028.7,18.33,-4.37,1917.5,18.98,-5.01,EB/WB f berbeda >10%
+scene1,p1c5,1528.0,1360.5,11.6,43.84,46.18,-927.4,-40.3,False,False,1039.7,1142.9,1197.4,37.6,6.57,1100.7,36.69,7.42,GT K tidak plausibel; EB/WB f berbeda >10%
+scene1,p3c6,162.1,145.9,10.5,78.44,79.41,-251.9,0.8,False,False,1321.0,1362.8,1427.9,24.84,3.0,1370.5,25.08,3.44,GT K tidak plausibel; EB/WB f berbeda >10%
+scene2,p2c3,1539.7,1536.5,0.21,72.61,72.65,-4377.1,-37.8,True,True,1312.7,1338.6,1970.0,6.21,-24.36,1488.8,7.17,-23.54,
+scene2,p1c5,1362.4,1396.7,2.48,46.91,45.94,-916.6,-32.5,False,False,1010.1,1091.7,1197.2,13.99,22.57,1082.3,-13.73,25.99,GT K tidak plausibel
+scene2,p3c6,2461.5,2038.6,18.79,17.53,20.53,-237.3,-37.9,False,False,532.3,1205.8,1523.7,27.62,-5.77,1075.4,32.42,-1.0,GT K tidak plausibel; EB/WB f berbeda >10%
+scene3,p2c3,1632.7,1632.7,0.0,70.68,70.68,-4116.9,-40.5,True,True,957.8,1722.1,1803.2,19.04,6.04,1732.1,19.07,6.55,
+scene3,p1c5,1326.0,1317.2,0.67,47.43,46.52,-903.4,-30.8,True,False,1219.9,1305.0,1390.5,36.37,7.88,1309.6,37.6,9.15,GT K tidak plausibel
+scene3,p3c6,2455.9,2011.7,19.88,17.4,20.3,-229.7,-34.3,True,False,1225.6,1232.0,1237.1,31.42,-0.55,1250.9,31.33,0.24,GT K tidak plausibel; EB/WB f berbeda >10%

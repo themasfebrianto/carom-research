@@ -12,7 +12,8 @@ import subprocess
 from pathlib import Path
 
 
-def extract(video: Path, out_dir: Path, times: list[float], prefix: str | None) -> list[Path]:
+def extract(video: Path, out_dir: Path, times: list[float], prefix: str | None,
+            scale: str | None = None) -> list[Path]:
     stem = prefix or video.stem
     made = []
     for t in times:
@@ -21,8 +22,10 @@ def extract(video: Path, out_dir: Path, times: list[float], prefix: str | None) 
         cmd = [
             "ffmpeg", "-hide_banner", "-loglevel", "error",
             "-ss", f"{t:.3f}", "-i", str(video),
-            "-frames:v", "1", "-y", str(dst),
         ]
+        if scale:
+            cmd += ["-vf", f"scale={scale}"]
+        cmd += ["-frames:v", "1", "-y", str(dst)]
         subprocess.run(cmd, check=True)
         if dst.exists() and dst.stat().st_size > 0:
             made.append(dst)
@@ -36,6 +39,8 @@ def main() -> None:
     ap.add_argument("--out", required=True)
     ap.add_argument("--times", nargs="+", type=float, default=[10.0, 30.0, 50.0])
     ap.add_argument("--prefix", default=None)
+    ap.add_argument("--scale", default=None,
+                    help="ffmpeg scale, e.g. 1920:1080 (default: native)")
     args = ap.parse_args()
 
     src = Path(args.input)
@@ -52,10 +57,10 @@ def main() -> None:
 
     total = 0
     for video in videos:
-        prefix = None
-        if src.is_dir():
+        prefix = args.prefix
+        if prefix is None and src.is_dir():
             prefix = "_".join(video.with_suffix("").parts[-3:])
-        total += len(extract(video, out_dir, args.times, prefix))
+        total += len(extract(video, out_dir, args.times, prefix, args.scale))
     print(f"\n{total} frame(s) -> {out_dir}")
 
 

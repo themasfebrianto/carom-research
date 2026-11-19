@@ -18,10 +18,10 @@ SOP acuan: `SOP-KALIBRASI-CCTV.md` §0.3, §3.4, §4.3, §5.4, §6, §7.
 
 | Fase | Status | Bukti / catatan |
 |---|---|---|
-| 0. Persiapan | **sebagian** | SVLD-3D siap; environment siap; I24-3D menunggu persetujuan; SKoPe3D/RoScenes belum |
-| 1. Kalibrasi I24-3D | **terblokir** | parser lolos self-test sintetis; data nyata belum tersedia |
-| 2. Dimensi I24-3D | **terblokir** | menunggu Fase 1 |
-| 3. SVLD-3D | **sebagian** | 50 objek (bukan 200): MAPE 0,36%; Bus/Car; lihat `HASIL-VALIDASI-SVLD.md` |
+| 0. Persiapan | **selesai** | I24-3D 50,04 GB + SVLD trainval 13,47 GB tersedia; environment GeoCalib siap; SKoPe3D/RoScenes belum |
+| 1. Kalibrasi I24-3D | **dibatalkan** | `hg` bukan GT f/pose; EB vs WB Δf median 7,1%; GeoCalib pitch meleset 9–65°; lihat `reports/i24-3d-kalibrasi/README.md` |
+| 2. Dimensi I24-3D | **siap dimulai** | 876.948 box, 720 objek; gunakan `P` untuk reproyeksi box dan `H` untuk ground-plane, bukan RQ(`P`) |
+| 3. SVLD-3D | **sebagian** | Test 50 objek MAPE 0,36% (self-consistency); trainval 14.592 gambar, 700 Truck/1.166 Bus, 120+174 fit, RMS 0,34–0,39 px; **`veh_size` preset**; lihat `reports/svld-trainval/README.md` |
 | 4. Keypoint + shape | **sebagian** | zero-shot Car 44,1%/Bus 0%; mask W/H ~7%, L 21,9%; fine-tune/GSNet belum |
 | 5–8. Anchor, MoGe-2, lajur, sintesis | **belum** | — |
 | Tambahan: container-only | **sebagian** | Grounded SAM 2 + tinggi standar; 20 ft 6,046 m (−0,2%); 40 ft masih ambigu 40/45 ft; lihat `HASIL-TIMEPASS-CAWANG.md` |
@@ -174,6 +174,15 @@ Tulis `out/00-protocol.md`:
 
 ## Fase 1 — I24-3D: validasi kalibrasi (2–3 hari)
 
+> **Update 19 November 2026 — gerbang ini dibatalkan.** Data lengkap sudah diperiksa.
+>
+> - `P[:,2]` adalah kolom VP vertikal dengan skala arbitrer; `scale_Z()` hanya mencocokkan tinggi box. RQ(`P`) bukan intrinsik fisik.
+> - `f` dari dua kalibrasi kamera yang sama (EB vs WB) berbeda median **7,1%**, p90 **24,6%**, maks **30,6%**.
+> - Ground RMS `H_inv` → `corr_pts` median **3,89 px**; **0/102** <1 px.
+> - Ketinggian kamera median 34 m (90% di 28–45 m), pitch 17–75° (p2c3 hampir nadir). GeoCalib `f` meleset **−52% s/d +26%** (multi-frame; single-frame sampai −76%), pitch **9–65°**.
+> - **Jangan** memakai Δf/f dan Δpitch terhadap `P` sebagai gerbang. Fase 1 diganti menjadi validasi ground-plane/dimensi (Fase 2) dan uji kalibrasi memakai SVLD-3D/pengukuran lapangan.
+> - Laporan: `reports/i24-3d-kalibrasi/README.md`.
+
 ### 1.1 Parse kalibrasi GT
 
 - [ ] Inspeksi `sceneX_hg.json`: bentuk `P`, `H`, `vps`, dan apakah `P` 3×4 atau 4×3.
@@ -241,6 +250,8 @@ ffmpeg -ss 50 -i data/i24/video/scene1/p1c1.mp4 -frames:v 1 out/i24/frames/scene
 
 ## Fase 2 — I24-3D: validasi dimensi (3–4 hari)
 
+> **Status 19 November 2026:** Fase 2 tetap layak. Gunakan `H`/`P` hanya untuk memproyeksikan box 3D dan mengukur `L/W/H`; **jangan** menurunkan `K` dari RQ(`P`). Data: 876.948 baris anotasi, 720 objek, satuan kaki. Untuk uji geometri murni, proyeksikan box GT dengan `P` lalu bandingkan dimensi; tidak perlu `K`.
+
 ### 2A — Round-trip formula (0,5–1 hari)
 
 Tujuan: memastikan rumus dan konvensi benar sebelum menyentuh persepsi.
@@ -280,9 +291,11 @@ Tujuan: memastikan rumus dan konvensi benar sebelum menyentuh persepsi.
 
 ## Fase 3 — SVLD-3D: bus dan kendaraan besar (2–3 hari)
 
-- [ ] Parse `Calib/{scene_id}.xml` dan anotasi XML.
+> **Status 19 November 2026.** Trainval tersedia: 14.592 gambar, 39.477 objek (**700 Truck**, 1.166 Bus, 37.611 Car); 5 scene kalibrasi konsisten (median 0,73–0,84 px, 0 objek >2 px). Pilot fit 120 Truck + 174 Bus: RMS 0,34–0,39 px, MAPE median 0,20–0,32%, tetapi panjang memburuk >100 m (4,39% median di >150 m; maks 17,96%). **Penting: `veh_size` adalah preset, bukan pengukuran**; Fase 3 dipakai untuk stress-test geometri/kelas besar, bukan accuracy claim. Laporan: `reports/svld-trainval/README.md`.
+
+- [ ] Parse `Calib/{scene_id}.xml` dan anotasi XML (test + trainval).
 - [ ] Verifikasi satuan: `veh_size` meter; `vertex3d` milimeter; `bbox2d` = x, y, w, h.
-- [ ] Catat distribusi: 7.396 Car, 745 Bus, **1 Truck**. Tidak ada cukup truk untuk benchmark.
+- [ ] Catat distribusi test: 7.396 Car, 745 Bus, **1 Truck**; trainval: 37.611 Car, 1.166 Bus, **700 Truck**. `veh_size` preset — jangan klaim akurasi fisik.
 - [ ] Pilih 200 citra test: 70 car, 130 bus; sebar jarak.
 - [ ] Jalankan pipeline yang sama seperti Fase 2B.
 - [ ] Hitung MAPE per kelas dan per sumbu.
@@ -299,7 +312,7 @@ Tujuan: memastikan rumus dan konvensi benar sebelum menyentuh persepsi.
 ### 4A0 — Bukti dari SVLD (sudah dikerjakan)
 
 - [x] Verifikasi kalibrasi SVLD: 8.142 objek, median RMS 0,74 px.
-- [x] Fit 50 objek dengan 8 sudut GT: MAPE 0,36%.
+- [x] Fit 50 objek dengan 8 sudut GT: MAPE 0,36% (self-consistency; `veh_size` preset).
 - [x] Sensitivitas: 3 px → 2,79%, 1,7% gagal; 5 px → 63,2% gagal.
 - [x] Subset: 4 kontak tanah + 1 atap (5 titik) → MAPE 0,48%, 0 gagal.
 - [x] Zero-shot `vehicle-keypoints`: 20 citra, match 56,9%, 5/5 di antara semua GT 36,1% (Car 44,1%, Bus 0%).

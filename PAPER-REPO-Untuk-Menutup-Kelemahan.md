@@ -75,9 +75,18 @@ P_{3\times4}=K[R\mid t],\qquad
 K=\begin{bmatrix} f_x & 0 & c_x\\ 0 & f_y & c_y\\ 0 & 0 & 1\end{bmatrix}
 $$
 
-Karena `P` disimpan dengan penulisan `[4,3]`, periksa bentuk array saat memuat. Konvensi proyeksi standar adalah **3×4** (3 baris, 4 kolom); `[4,3]` di README kemungkinan berarti 4 kolom × 3 baris. Jika array yang terbaca 4×3, transpose dulu; jika 3×4, pakai langsung. Yang dipakai untuk RQ adalah blok 3×3 di kiri. Setelah $K$ dinormalisasi agar $K_{33}=1$, bandingkan:
+Karena `P` disimpan dengan penulisan `[4,3]`, periksa bentuk array saat memuat. **Data nyata 19 Nov 2026 menunjukkan file berisi 3×4**, bukan 4×3. Konvensi proyeksi standar adalah **3×4** (3 baris, 4 kolom); parser menerima keduanya. Yang dipakai untuk RQ adalah blok 3×3 di kiri. Setelah $K$ dinormalisasi agar $K_{33}=1$, bandingkan:
 
-Namun `P` di kode I24-3D **dibangun** dari `H_inv` ditambah kolom VP vertikal (`homography.py`), bukan dari kalibrasi lab. Wajib uji round-trip `P` → `corr_pts`; jika RMS >1 px, jangan percaya RQ. Turunkan pitch dari `vps` dan `H`, atau gunakan hanya $f$ yang tervalidasi. Ini gerbang sebelum $K$ dipakai sebagai ground truth.
+Namun `P` di kode I24-3D **dibangun** dari `H_inv` ditambah kolom VP vertikal (`homography.py`), bukan dari kalibrasi lab.
+
+> **Koreksi 19 November 2026 — jangan pakai RQ(`P`) sebagai GT.** Data lengkap sudah diperiksa:
+>
+> - `P[:,2]` diskalakan `* 0.01` lalu `scale_Z()`; tidak ada jaminan `P = K[R|t]` dengan K pinhole.
+> - Hanya **39/102** kalibrasi yang K-nya plausibel.
+> - `f` EB vs WB untuk kamera yang sama berbeda median **7,1%**, p90 **24,6%**.
+> - Ground RMS `H_inv` → `corr_pts` median **3,89 px**; **0/102** <1 px.
+> - Kamera 28–45 m (median 34 m), pitch 17–75°; GeoCalib `f` meleset −52% s/d +26%, pitch 9–65°.
+> - **Gerbang Δf/f <5% dan Δθ <2° tidak dapat dijalankan dengan `P`.** Laporan: `reports/i24-3d-kalibrasi/README.md`. Gunakan SVLD-3D/pengukuran lapangan untuk GT kalibrasi; I24-3D untuk GT dimensi dan ground-plane.
 
 $$
 \frac{\Delta f}{f}=\frac{|f_{\text{GeoCalib}}-f_x|}{f_x},

@@ -18,7 +18,7 @@ Dokumen ini adalah **ringkasan master**. Detail ada di berkas yang ditautkan di 
 
 | Aspek | Status | Angka |
 |---|---|---|
-| Geometri pengukuran | **terbukti** | MAPE 0,36% dengan 8 sudut GT |
+| Geometri/parameterisasi | **terbukti (self-consistency)** | MAPE 0,36% dengan 8 sudut GT; **`veh_size` preset**, bukan ukur fisik |
 | Kalibrasi SVLD | **terverifikasi** | median reproyeksi 0,74 px |
 | GeoCalib | **tidak reliabel di SVLD** | 1/5 scene lulus |
 | Lebar/tinggi (mask) | **layak screening** | W 7,1%, H 7,6% |
@@ -135,7 +135,7 @@ Syarat agar combo ini cukup:
 ### 4.2.2 Dataset kalibrasi yang tersedia
 
 - **SVLD-3D**: `f`, `h`, pitch, yaw; **tanpa roll** dan distorsi; test set publik 2.237 gambar. Cocok untuk uji cepat `f/pitch/yaw/h`.
-- **I24-3D**: `P`, `H`, `H_inv`, `vps`, `corr_pts`, `space_pts`, `curve`; `f/h/yaw/pitch/roll` diturunkan dari `P`. Satu ZIP 49,8 GB, tidak bisa partial; **reference calibration**, bukan checkerboard.
+- **I24-3D**: `P`, `H`, `H_inv`, `vps`, `corr_pts`, `space_pts`, `curve`; `f/h/yaw/pitch/roll` diturunkan dari `P`. **Data lengkap 50,04 GB sudah diperiksa 19 Nov 2026**: RQ(`P`) **bukan** GT fisik (kolom-Z ad hoc; `f` EB vs WB beda median 7,1%); kamera 28–45 m dan bukan side-view. Lihat `reports/i24-3d-kalibrasi/README.md`.
 - **I24V**: 234 kamera 1080p, 234 jam; `H`/`P` static/dynamic; fokus tracking, bukan pengganti I24-3D; lebih besar.
 - **CUTC**: checkerboard/ChArUco, GT paling bersih; **RoScenes**: multi-kamera roadside.
 - Repo `I24-MOTION/I24-3D-dataset` adalah **toolkit** (`homography.py`, `scene.py`, `export_dataset.py`), bukan dataset. Detail dan link: `reports/DATASET-KALIBRASI.md`.
@@ -143,13 +143,15 @@ Syarat agar combo ini cukup:
 ### 4.3 SVLD-3D
 
 - Test set: 2.237 citra, 8.142 objek; **7.396 Car, 745 Bus, 1 Truck**.
+- Trainval (baru): 14.592 citra, 39.477 objek; **37.611 Car, 1.166 Bus, 700 Truck**; 5 scene, kalibrasi median **0,73–0,84 px**, maks 1,11, 0 objek >2 px.
 - Kalibrasi: `f`, `fi` = pitch, `theta` = yaw, `h` mm.
-- Reproyeksi 8.142 objek: median **0,74 px**, p90 0,85, maks 1,08, 0 objek >2 px.
+- Reproyeksi test 8.142 objek: median **0,74 px**, p90 0,85, maks 1,08, 0 objek >2 px.
+- **`veh_size` adalah preset, bukan pengukuran**: 1.164/1.166 Bus trainval `L=12,60 m`; test Bus `12,00/9,46 m`; 184 Truck `L=20,00 m`. MAPE fit adalah self-consistency, bukan akurasi fisik. Detail: `reports/svld-trainval/README.md`.
 - Kamera SVLD menghadap jalan (sudut 4–29°), **bukan side-view**; tidak bisa memvalidasi panjang.
 
-### 4.4 Geometri 50 objek
+### 4.4 Geometri 50 objek (self-consistency)
 
-26 Car + 24 Bus, jarak 13,5–122,9 m, input 8 sudut 2D GT.
+26 Car + 24 Bus, jarak 13,5–122,9 m, input 8 sudut 2D GT. **Bukan akurasi fisik**: `veh_size` adalah preset, dan 2D/3D box dibangun dari dimensi yang sama.
 
 | Metrik | Mean | Median | p90 | Max |
 |---|---:|---:|---:|---:|
@@ -252,11 +254,11 @@ Grounding DINO tiny + SAM 2.1 tiny.
 | 7 | YOLO26-seg dianggap lebih baik | 17,5 m vs 14,04 m | tetap YOLO11/lower envelope | selesai |
 | 8 | Prompt teks SAM2 mencakup kabin | mask whole-truck | box prompt kontainer-only | selesai |
 | 9 | Kecepatan dari baseline 0,8 s | 7–119 km/jam | jangan pakai kecepatan; panjang lebih stabil | terbuka |
-| 10 | `P` I24-3D dianggap 4×3 | potensi transpose salah | parser menerima 3×4/4×3; cek round-trip | siap |
+| 10 | `P` I24-3D dianggap 4×3 | potensi transpose salah | data nyata 3×4; parser menerima keduanya; ground RMS median 3,89 px | selesai |
 | 11 | GeoCalib dipercaya tanpa cek | f salah di 4/5 SVLD | gerbang pitch vs VP | selesai |
 | 12 | OpenPifPaf dianggap bisa langsung | build gagal (MSVC/torch 1.13.1) | ganti `vehicle-keypoints` | selesai |
 | 13 | GSNet dianggap punya bobot | bobot pretrained dihapus | fitting manual; data ApolloCar3D NC | terbuka |
-| 14 | SVLD dianggap punya truk | hanya 1 Truck | truk dari I24-3D/RoScenes | selesai |
+| 14 | SVLD dianggap punya truk | test hanya 1 Truck | trainval 700 Truck (dimensi preset); I24-3D/RoScenes | selesai |
 | 15 | SVLD dianggap bisa uji panjang | kamera 4–29° (rear/front) | butuh data side-view | selesai |
 | 16 | 40 ft SINKOR dianggap 40 ft | bisa 45 ft | perlu identifikasi tipe | terbuka |
 | 17 | Ambiguitas 2 vs 3 lajur ATP | skala bisa 1,4× | belum diselesaikan | terbuka |
@@ -271,8 +273,8 @@ Grounding DINO tiny + SAM 2.1 tiny.
 | Tanpa multi-kamera | panjang sulit | side-view 1 kamera, multi-frame, atau kamera miring |
 | Tanpa plat | tidak bisa lookup dimensi | pure pixel; standar kontainer |
 | Tanpa GPU | training/fine-tune lambat | CPU inference; model siap pakai |
-| I24-3D pending | GT 50 kamera & truk belum tersedia | ajukan akses; SVLD sementara |
-| Situs I24-3D menolak `curl` (WAF) | otomasi gagal | registrasi via browser |
+| I24-3D bukan GT f/pose | gerbang kalibrasi tidak bisa dijalankan | pakai SVLD/pengukuran lapangan; I24 untuk GT dimensi/ground-plane |
+| Situs I24-3D menolak `curl` (WAF) | otomasi gagal | data 50,04 GB sudah diunduh via browser; tidak perlu curl |
 | Tanpa GT lokal Indonesia | klaim akurasi terbatas | SVLD/Cawang proksi; field test |
 | Cawang pitch 2,43° | degenerasi terburuk | anchor lebar lajur 3,60 m |
 | Jalan Cawang melengkung | galat sistematis | batasi segmen lurus |
@@ -280,10 +282,10 @@ Grounding DINO tiny + SAM 2.1 tiny.
 | Mask body tanpa ban | panjang bias | lower envelope; SAM2 container-only |
 | Kecepatan tidak stabil | time-of-passage mentah | track lebih panjang; garis crossing |
 | Lisensi non-komersial | tidak untuk produk | validasi riset; data sendiri |
-| SVLD hanya 1 Truck | truk tak teruji | I24-3D/RoScenes |
+| SVLD test hanya 1 Truck | truk tak teruji | trainval 700 Truck (tapi `veh_size` preset); I24-3D/RoScenes |
 | 40 ft ambigu 40/45 | GT tidak pasti | identifikasi tipe/kode kontainer |
 | Kontainer di atas sasis | back-projection ground salah | tinggi standar + 3D fit |
-| Kamera SVLD bukan side-view | tak bisa validasi panjang | data side-view/I24-3D |
+| Kamera SVLD bukan side-view | tak bisa validasi panjang | side-view Cawang/pengukuran lapangan; **I24-3D juga aerial/nadir**, bukan side-view |
 
 ---
 
@@ -295,7 +297,7 @@ Grounding DINO tiny + SAM 2.1 tiny.
 4. **Detektor 5 titik** — apakah ada model yang mencapai ≤3 px pada mobil dan bus?
 5. **Time-of-passage murni** — apakah $L=v\Delta t$ lebih stabil daripada side-view?
 6. **Multi-frame 1 kamera** — apakah sudut pandang berubah cukup untuk panjang?
-7. **Truk/bus side-view GT** — I24-3D satu kamera atau field test.
+7. **Truk/bus side-view GT** — side-view Cawang atau field test; I24-3D bukan side-view (aerial/nadir), tetapi memberi GT dimensi 3D.
 8. **Validasi Indonesia** — satu kendaraan diukur dengan meteran.
 9. **Metrologi legal** — sertifikasi alat, ketertelusuran.
 10. **Lisensi model** — OpenPifPaf AGPL, data NC; jalur produksi belum jelas.
@@ -310,7 +312,7 @@ Grounding DINO tiny + SAM 2.1 tiny.
 | CAROM (Lu dkk., ICRA 2021) | infrastruktur, mask + tangent hull | pendahulu untuk CCTV |
 | GeoCalib (Veicht dkk., ECCV 2024) | f, pitch, roll dari 1 citra | 1/5 SVLD; wajib cek VP |
 | SVLD-3D / CenterLoc3D (Tang dkk.) | 2.237 citra, GT L/W/H, kalibrasi | truk hanya 1; kamera rear/front |
-| I24-3D (Gloudemans dkk., BMVC 2023) | 16–17 kamera, 877k box, P/H/VP | pending; GT terbaik |
+| I24-3D (Gloudemans dkk., BMVC 2023) | 16–18 kamera, 877k box, P/H/VP | data tersedia; **bukan GT f/pose** (P z-scale ad hoc); aerial 28–45 m, bukan side-view |
 | SKoPe3D (Pahadia dkk., ITSC 2023) | 25k CARLA, 33 keypoint, side CCTV | tidak ada bobot pretrained |
 | GSNet (Ke dkk., ECCV 2020) | 79 mesh + PCA | bobot dihapus; data NC |
 | OpenPifPaf | 24/66 keypoint | build gagal di Windows; AGPL |
@@ -349,7 +351,7 @@ Skrip penting:
 | Skrip | Fungsi |
 |---|---|
 | `svld_reproj_check.py` | verifikasi kalibrasi SVLD |
-| `svld_fit_dims.py` | fit 3D box, 50 objek |
+| `svld_fit_dims.py` | fit 3D box; test 50 objek, trainval 120 Truck + 174 Bus (`--classes`) |
 | `svld_sensitivity.py` | sensitivitas noise |
 | `svld_subsets.py` | subset sudut |
 | `svld_kp_detectability.py` | keypoint zero-shot |
@@ -385,7 +387,7 @@ Skrip penting:
 
 **Prioritas 2 — identifikasi 40 vs 45 ft.** Uji kontainer 40 ft yang jelas, atau baca kode ISO 6346 (bukan plat kendaraan). Tanpa tipe, 13,99 m tidak bisa disebut galat.
 
-**Prioritas 3 — I24-3D satu kamera.** Cari kamera yang melihat sisi kendaraan; bandingkan dengan `veh_size`. Ini GT side-view yang sah.
+**Prioritas 3 — I24-3D untuk GT dimensi, bukan side-view.** Kamera I24-3D aerial/nadir 28–45 m; tidak ada pandangan sisi. Gunakan `L/W/H` 3D dari anotasi sebagai GT dimensi. Untuk validasi panjang dari siluet samping, tetap pakai side-view Cawang atau pengukuran lapangan.
 
 **Prioritas 4 — detektor 5 titik.** Fine-tune `vehicle-keypoints` atau SKoPe3D; target ≤3 px. Butuh GPU.
 

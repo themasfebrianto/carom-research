@@ -33,22 +33,24 @@ Harus keluar:
 ### 2. Parse kalibrasi I24-3D
 
 ```powershell
-& "C:\Users\omega\AppData\Local\Temp\opencode\cctv-eval\Scripts\python.exe" `
-  scripts\i24_parse.py `
-  --hg data\i24\hg\scene1_hg.json `
+py scripts\i24_parse.py `
+  --hg I24-3D\data\hg\scene1_hg.json `
   --out out\i24\calib_gt_scene1.json
 ```
 
-Keluaran berisi `fx`, `fy`, `cx`, `cy`, `height_m`, `pitch_deg`, `roll_deg`, `yaw_deg`, dan `roundtrip_rms_px` jika `space_pts`/`corr_pts` ada.
+Struktur nyata file adalah `{"EB": {kamera: ...}, "WB": {kamera: ...}}`; parser menangani bentuk itu dan bentuk flat. Keluaran default berisi `ground_rms_px`, `ground_max_px`, `horizon_line`, `curve`, `vps`, dan `P_z_scale` per arah/kamera.
+
+**Penting:** `P[:,2]` adalah kolom VP vertikal dengan skala arbitrer (`* 0.01`) yang disesuaikan `scale_Z()`. RQ(`P`) **bukan** intrinsik fisik; karena itu `fx/fy/...` tidak ditulis secara default. Untuk diagnostik lama, tambah `--legacy-rq` (hasilnya diberi `rq_warning`). Detail: `../reports/i24-3d-kalibrasi/README.md`.
 
 ### 3. Ekstrak frame
 
 ```powershell
-py scripts\i24_frames.py data\i24\video\scene1 `
-  --out out\i24\frames\scene1 --times 10 30 50
+py scripts\i24_frames.py I24-3D\video\scene1 `
+  --out out\i24\frames\scene1 --times 10 30 50 `
+  --scale 1920:1080
 ```
 
-Nama file mengikuti prefix folder; kamera `p1c1` akan terbaca oleh evaluator.
+Nama file mengikuti prefix folder; kamera `p1c1` akan terbaca oleh evaluator. Gunakan `--scale 1920:1080` agar `f` GeoCalib sebanding dengan `P`/`H` I24-3D yang ber-referensi 1080p; tanpa `--scale`, frame keluar 4K dan `f` harus dikali 2.
 
 ### 4. Jalankan GeoCalib
 
@@ -67,10 +69,17 @@ Untuk batch besar, berikan daftar file eksplisit; wildcard PowerShell bisa terla
 py scripts\eval_i24_calib.py `
   --geo out\i24\geocalib_scene1.json `
   --gt out\i24\calib_gt_scene1.json `
+  --direction EB `
   --out out\i24\calib_eval_scene1.csv
 ```
 
-Keluaran: CSV per frame + ringkasan median/p90/max dan status gerbang.
+Keluaran: CSV per frame + ringkasan median/p90/max dan status gerbang. Karena `hg` tidak memberi `f` fisik, semua baris akan berstatus **`NO_F_GT`**; `--legacy-rq` hanya menaruh blok diagnostik di `legacy_rq`, bukan `fx` top-level. Jangan menafsirkan `NO_F_GT` sebagai lulus/gagal; itu berarti GT `f` tidak tersedia.
+
+Untuk uji pilot I24-3D yang sudah dijalankan (GT pitch dari horizon `H`, GeoCalib single + multi-frame):
+
+```powershell
+py scripts\i24_pilot_summary.py --out out\i24\i24_pilot_summary.csv
+```
 
 ### 6. Inventaris SVLD-3D
 
@@ -100,14 +109,25 @@ Kalibrasi SVLD konsisten; GeoCalib hanya lulus 1/5 scene, jadi jangan pakai GeoC
 ### 8. Fit dimensi SVLD
 
 ```powershell
+# test set: Car/Bus
 py scripts\svld_fit_dims.py `
   --root data\svld\TESTDATA2021\TESTDATA2021 `
   --out out\svld --n 50 --seed 42
+
+# trainval: truk dan bus
+py scripts\svld_fit_dims.py `
+  --root "SVLD-3D-TRAINVAL-SCENE-A-C\DATA2021" `
+  --out out\svld_trainval\fit_truck120 --n 120 --classes Truck --seed 42
+py scripts\svld_fit_dims.py `
+  --root "SVLD-3D-TRAINVAL-SCENE-D\DATA2021" `
+  --out out\svld_trainval\fit_bus_d120 --n 120 --classes Bus --seed 42
 ```
 
 Keluaran: `fit_dims.csv`, `fit_dims_summary.json`.
 Input: 8 sudut 2D GT (`vertex2d`) + kalibrasi XML; fit 6 parameter (X, Y, yaw, L, W, H).
-Hasil 50 objek: MAPE 0,36%, RMS 0,35 px. Ini uji geometri, bukan detektor.
+`--classes` membatasi/menambah kelas (default semua yang ada: Car, Bus, Truck); stratifikasi jarak memakai bin 0–35, 35–65, 65–2000 m.
+
+Hasil test 50 objek: MAPE 0,36%, RMS 0,35 px. Trainval pilot (120 Truck + 174 Bus): MAPE median 0,20–0,32%, RMS 0,34–0,39 px; panjang memburuk >100 m. **Peringatan:** `veh_size` SVLD adalah preset, jadi ini uji self-consistency geometri, bukan akurasi fisik. Detail: `../reports/svld-trainval/README.md`.
 
 ### 9. Analisis sensitivitas noise
 
@@ -199,9 +219,12 @@ python scripts\calib_compare\make_summary.py
 
 ## Catatan teknis
 
-- `P` I24-3D ditulis `[4,3]`; parser menerima 3×4 dan 4×3.
-- `P` dibangun dari `H_inv` + VP vertikal, bukan kalibrasi lab. Uji round-trip `P` → `corr_pts`; jika RMS >1 px, jangan pakai RQ. Gunakan `vps`/`H` sebagai fallback.
+- **`P` I24-3D ditulis 3×4** di file (README dataset menulis `[4,3]`); parser menerima keduanya.
+- `P` dibangun dari `H_inv` + VP vertikal, bukan kalibrasi lab. Kolom-Z-nya diskalakan `* 0.01` lalu `scale_Z()`. **RQ(`P`) bukan intrinsik fisik**; jangan pakai `fx`/`height`/`pitch` dari RQ sebagai GT. Hasil data nyata: `f` EB vs WB berbeda median 7,1%, p90 24,6%.
+- Ground RMS `H_inv` → `corr_pts` median 3,89 px, maks 9,36 px; 0/102 <1 px. `H` adalah model tracking di frame jalan yang diluruskan (`curve`), bukan homografi fotogrametri.
 - Satuan I24-3D adalah kaki; konversi 0,3048 ke meter.
+- Kamera I24-3D berada di 28–45 m dan menghadap ke bawah 17–75°; **bukan side-view**. GeoCalib meleset 9–65° pada data ini.
+- **`veh_size` SVLD adalah preset, bukan pengukuran**: trainval 1.164/1.166 Bus `L=12,60 m`, 184 Truck `L=20,00 m`; test Bus `12,00/9,46 m`. Fit 8 sudut adalah self-consistency geometri, bukan akurasi fisik. Detail: `../reports/svld-trainval/README.md`.
 - Jika frame 1080p dipakai, skala `f`, `cx`, `cy` dengan rasio lebar terhadap resolusi acuan `P`.
 - GeoCalib memakai pitch negatif untuk menunduk; evaluator membandingkan magnitudo absolut.
 - File JSON dari PowerShell bisa ber-BOM; skrip membaca dengan `utf-8-sig`.
