@@ -7,7 +7,10 @@ Ringkasan seluruh uji pada SVLD-3D: kalibrasi, geometri, sensitivitas, subset su
 | Komponen | Hasil | Status |
 |---|---|---|
 | Kalibrasi SVLD | reproyeksi 8.142 objek, median 0,74 px | **terverifikasi** |
-| GeoCalib pada 5 scene SVLD | 1/5 lulus f<5% dan pitch<2° | **tidak reliabel** |
+| GeoCalib pada 5 scene SVLD | 1/5 scene; **20/100 citra** lulus f<5% dan pitch<2°; multi 1/5 | **tidak reliabel** |
+| VP + f GT | 95/100 lulus pitch/yaw <2°; median 0,20°/0,05° | **kuat untuk pose** |
+| VP + f GeoCalib | 47/100; median 2,46°/1,12° | **f tetap bottleneck** |
+| Lebar lajur SVLD | 2,7–3,56 m tergantung metode | **3,6 m tidak universal** |
 | Geometri 50 objek (8 sudut GT) | MAPE 0,36%, RMS 0,35 px | **self-consistency** (label preset; lihat §4) |
 | Sensitivitas noise 3 px | MAPE 2,79%, 1,7% gagal | **target keypoint ≤3 px** |
 | Subset 5 titik | MAPE 0,48% | **cukup** |
@@ -40,6 +43,29 @@ Diuji pada satu citra per scene (5 scene). Hasil:
 | session6_right | 28,5% | 4,99° | gagal |
 
 Hanya **1/5** lulus. Kalibrasi XML SVLD benar, jadi ini domain gap GeoCalib pada scene jalan dengan vegetasi dan kamera miring. Gerbang validasi silang SOP §0.3.2 bekerja; jangan memakai GeoCalib tanpa cek per scene.
+
+**Uji lanjutan 100 citra** (10 test + 10 trainval per scene) mengonfirmasi pola ini: **20/100 lulus (20%)**, hanya `session0_centre`; median Δf **14,9%**, Δpitch **3,03°**; multi-frame **1/5**. Hasil test dan trainval hampir sama (20% di keduanya), jadi bukan kebetulan satu frame. Detail: `reports/svld-geocalib/README.md`.
+
+### 3.1 VP jalan (tambahan)
+
+VP arah jalan diuji pada 100 citra yang sama, dengan dua sumber `f`:
+
+| Sumber `f` | Lulus pitch/yaw <2° | Δpitch median | Δyaw median |
+|---|---:|---:|---:|
+| VP + `f` GT | **95/100** | **0,20°** | **0,05°** |
+| VP + `f` GeoCalib | 47/100 | 2,46° | 1,12° |
+| GeoCalib saja | 20/100 | 3,03° | tidak ada |
+
+**Bacaan:** VP memberi **yaw** yang tidak dimiliki GeoCalib, dan pitch yang sangat akurat bila `f` benar. Dengan `f` GeoCalib, VP masih lebih baik dari GeoCalib saja (47 vs 20), tetapi **f yang salah tetap merusak pose**. Urutan yang masuk akal: `f` dari dash fit/kamera diketahui/anchor → VP untuk yaw/pitch.
+
+`1cam` adalah outlier utama: 4/20 frame memilih persilangan garis yang salah; VP benar scene itu `(u≈464, v≈−42)`. **Median VP per scene** (kamera statis): dengan `f` GT **5/5 lulus**, maksimum Δpitch 0,43°/Δyaw 0,14°; dengan `f` GeoCalib **2/5**. Median temporal menghilangkan outlier 1cam, tetapi tidak memperbaiki `f`.
+
+### 3.2 Lebar lajur dan anchor
+
+- Marka: median per scene **3,0–3,56 m**, tetapi IQR lebar dan sebagian bimodal.
+- Posisi lateral box 3D: puncak lajur memberi **2,7–3,25 m** (0cam 3,0; 1cam 2,7; session0_centre 3,2; session0_right 3,2; session6_right 3,25).
+- **3,6 m bukan lebar universal.** Untuk skala absolut, ukur lebar lajur per lokasi; gunakan estimasi kendaraan sebagai prior dan marka sebagai cross-check. Untuk Cawang, jangan pakai `w=3,60` sebagai GT; container 20 ft tetap cek skala independen.
+- Detail: `reports/svld-vp/README.md`.
 
 ## 4. Geometri
 
@@ -121,7 +147,7 @@ Lebar dan tinggi layak untuk screening (<10%); panjang tidak. Mask body tidak me
 - Parameterisasi box dan kalibrasi benar: dengan 2D sempurna, MAPE 0,36% (self-consistency, bukan akurasi fisik).
 - Lima titik cukup; target akurasi ≤3 px.
 - Mask-based memberi W/H ~7%, cukup untuk screening.
-- GeoCalib tidak reliabel pada 4/5 scene SVLD; gerbang SOP perlu.
+- GeoCalib tidak reliabel pada 4/5 scene SVLD; 100 citra mengonfirmasi hanya 20% lulus; gerbang SOP perlu.
 
 **Belum terbukti:**
 
@@ -160,4 +186,6 @@ Untuk panjang, diperlukan multi-frame, multi-kamera, atau model bentuk yang lebi
 - `out/keypoint/detectability_report.md`
 - `out/keypoint/mask_fit_report.md`
 - `reports/svld-trainval/README.md` + `inventory.csv` + `calib_reproj.csv` + `fit_summary.csv` + `fit_distance.csv`
+- `reports/svld-geocalib/README.md` + `summary.csv` + `single.csv` + `multi.csv`
+- `reports/svld-vp/README.md` + `summary.csv` + `lane_width.csv` + `vp_gt.csv` + `vp_geo.csv`
 - `scripts/svld_reproj_check.py`, `svld_fit_dims.py`, `svld_sensitivity.py`, `svld_subsets.py`, `svld_kp_detectability.py`, `svld_mask_fit.py`

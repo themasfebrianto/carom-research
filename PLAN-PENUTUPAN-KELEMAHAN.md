@@ -21,7 +21,7 @@ SOP acuan: `SOP-KALIBRASI-CCTV.md` §0.3, §3.4, §4.3, §5.4, §6, §7.
 | 0. Persiapan | **selesai** | I24-3D 50,04 GB + SVLD trainval 13,47 GB tersedia; environment GeoCalib siap; SKoPe3D/RoScenes belum |
 | 1. Kalibrasi I24-3D | **dibatalkan** | `hg` bukan GT f/pose; EB vs WB Δf median 7,1%; GeoCalib pitch meleset 9–65°; lihat `reports/i24-3d-kalibrasi/README.md` |
 | 2. Dimensi I24-3D | **siap dimulai** | 876.948 box, 720 objek; gunakan `P` untuk reproyeksi box dan `H` untuk ground-plane, bukan RQ(`P`) |
-| 3. SVLD-3D | **sebagian** | Test 50 objek MAPE 0,36% (self-consistency); trainval 14.592 gambar, 700 Truck/1.166 Bus, 120+174 fit, RMS 0,34–0,39 px; **`veh_size` preset**; lihat `reports/svld-trainval/README.md` |
+| 3. SVLD-3D | **sebagian** | Test 50 objek MAPE 0,36% (self-consistency); trainval 14.592 gambar, 700 Truck/1.166 Bus, 120+174 fit, RMS 0,34–0,39 px; **`veh_size` preset**; GeoCalib 20/100 citra lulus; lihat `reports/svld-trainval/README.md` dan `reports/svld-geocalib/README.md` |
 | 4. Keypoint + shape | **sebagian** | zero-shot Car 44,1%/Bus 0%; mask W/H ~7%, L 21,9%; fine-tune/GSNet belum |
 | 5–8. Anchor, MoGe-2, lajur, sintesis | **belum** | — |
 | Tambahan: container-only | **sebagian** | Grounded SAM 2 + tinggi standar; 20 ft 6,046 m (−0,2%); 40 ft masih ambigu 40/45 ft; lihat `HASIL-TIMEPASS-CAWANG.md` |
@@ -292,6 +292,8 @@ Tujuan: memastikan rumus dan konvensi benar sebelum menyentuh persepsi.
 ## Fase 3 — SVLD-3D: bus dan kendaraan besar (2–3 hari)
 
 > **Status 19 November 2026.** Trainval tersedia: 14.592 gambar, 39.477 objek (**700 Truck**, 1.166 Bus, 37.611 Car); 5 scene kalibrasi konsisten (median 0,73–0,84 px, 0 objek >2 px). Pilot fit 120 Truck + 174 Bus: RMS 0,34–0,39 px, MAPE median 0,20–0,32%, tetapi panjang memburuk >100 m (4,39% median di >150 m; maks 17,96%). **Penting: `veh_size` adalah preset, bukan pengukuran**; Fase 3 dipakai untuk stress-test geometri/kelas besar, bukan accuracy claim. Laporan: `reports/svld-trainval/README.md`.
+
+**VP (20 Nov 2026):** 100 citra yang sama — VP + `f` GT **95/100** lulus pitch/yaw <2° (median 0,20°/0,05°); median VP per scene **5/5** dengan f GT, 2/5 dengan f GeoCalib; VP + `f` GeoCalib **47/100**; GeoCalib saja 20/100. VP memberi yaw; `f` tetap bottleneck. Lebar lajur data-driven **2,7–3,56 m**, jadi anchor 3,6 m tidak universal — ukur per lokasi. Laporan: `reports/svld-vp/README.md`.
 
 - [ ] Parse `Calib/{scene_id}.xml` dan anotasi XML (test + trainval).
 - [ ] Verifikasi satuan: `veh_size` meter; `vertex3d` milimeter; `bbox2d` = x, y, w, h.

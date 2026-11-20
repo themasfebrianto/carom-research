@@ -217,6 +217,47 @@ node scripts\calib_compare\fit_compare.mjs
 python scripts\calib_compare\make_summary.py
 ```
 
+## GeoCalib vs GT SVLD
+
+Sampling 10 citra per scene per split (test + trainval) dan evaluasi f/pitch terhadap XML:
+
+```powershell
+py scripts\svld_geocalib_sample.py --per-scene 10 --out out\svld_geocalib
+
+$GEO = "C:\Users\omega\AppData\Local\Temp\opencode\geoenv\Scripts\python.exe"
+$files = Import-Csv out\svld_geocalib\manifest.csv | ForEach-Object { $_.source }
+& $GEO scripts\geocalib_batch.py @files --out out\svld_geocalib\geocalib_single.json
+
+foreach ($s in '0cam','1cam','session0_centre','session0_right','session6_right') {
+  & $GEO scripts\calib_compare\run_geocalib_multi.py `
+    "out\svld_geocalib\frames_multi\$s" `
+    --out "out\svld_geocalib\geocalib_multi_$s.json"
+}
+
+py scripts\eval_svld_geocalib.py `
+  --manifest out\svld_geocalib\manifest.csv `
+  --single out\svld_geocalib\geocalib_single.json `
+  --multi-dir out\svld_geocalib --out out\svld_geocalib
+```
+
+Hasil: **20/100 citra lulus** (hanya `session0_centre`); median Δf 14,9%, Δpitch 3,03°; multi-frame 1/5. Yaw dan `h` tidak diuji karena GeoCalib tidak mengestimasi keduanya. Detail: `../reports/svld-geocalib/README.md`.
+
+## VP dan lebar lajur SVLD
+
+```powershell
+# VP dengan f GT (batas atas) dan f GeoCalib (realistis)
+py scripts\svld_vp_eval.py --source gt  --out out\svld_vp
+py scripts\svld_vp_eval.py --source geo --out out\svld_vp
+
+# Lebar lajur dari posisi lateral kendaraan 3D
+py scripts\svld_lane_width.py --out out\svld_vp --min-width-m 2.5
+
+# Median VP per scene (kamera statis)
+py scripts\svld_vp_scene_median.py --out out\svld_vp
+```
+
+Hasil: VP + `f` GT **95/100** lulus pitch/yaw <2° (median 0,20°/0,05°); median VP per scene **5/5** dengan f GT; VP + `f` GeoCalib **47/100** (2,46°/1,12°); GeoCalib saja 20/100. VP memberi **yaw**; `f` tetap bottleneck. Lebar lajur data-driven **2,7–3,56 m**, jadi 3,6 m bukan universal. Detail: `../reports/svld-vp/README.md`.
+
 ## Catatan teknis
 
 - **`P` I24-3D ditulis 3×4** di file (README dataset menulis `[4,3]`); parser menerima keduanya.
@@ -227,5 +268,8 @@ python scripts\calib_compare\make_summary.py
 - **`veh_size` SVLD adalah preset, bukan pengukuran**: trainval 1.164/1.166 Bus `L=12,60 m`, 184 Truck `L=20,00 m`; test Bus `12,00/9,46 m`. Fit 8 sudut adalah self-consistency geometri, bukan akurasi fisik. Detail: `../reports/svld-trainval/README.md`.
 - Jika frame 1080p dipakai, skala `f`, `cx`, `cy` dengan rasio lebar terhadap resolusi acuan `P`.
 - GeoCalib memakai pitch negatif untuk menunduk; evaluator membandingkan magnitudo absolut.
+- GeoCalib hanya mengestimasi `f`, pitch, dan roll; **yaw dan tinggi kamera tidak tersedia**, jadi jangan membandingkannya dengan GT SVLD. Roll SVLD juga tidak eksplisit.
+- `vp_pose.pose_from_vp` memakai konvensi yang sama dengan model SVLD (`R = Rx(fi + π/2) Rz(theta)`), jadi pitch/yaw VP bisa dibandingkan langsung. VP hanya memberi **road-direction VP**; `f` harus dari sumber lain.
+- Lebar lajur SVLD dari marka dan dari posisi kendaraan berbeda hingga ~0,6 m; **jangan pakai 3,6 m sebagai GT**. Untuk skala absolut, ukur per lokasi.
 - File JSON dari PowerShell bisa ber-BOM; skrip membaca dengan `utf-8-sig`.
 - Jangan menjalankan GeoCalib dan parser dari env yang sama jika dependensi bentrok; keduanya dipisah.

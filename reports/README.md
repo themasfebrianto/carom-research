@@ -5,7 +5,7 @@ Salinan kurasi dari folder kerja `out/`. Folder `out/` tetap di-`.gitignore` kar
 - Dikumpulkan: 19 November 2026
 - HEAD saat dikumpulkan: `9657fd1` (plus perubahan lokal parser & laporan I24-3D)
 - Format: UTF-8; tidak ada citra, video, bobot model, atau dataset
-- Jumlah: 77 berkas
+- Jumlah: 88 berkas
 
 ## Indeks
 
@@ -18,6 +18,8 @@ Salinan kurasi dari folder kerja `out/`. Folder `out/` tetap di-`.gitignore` kar
 | `i24-3d-kalibrasi/` | **Data nyata I24-3D**: 102 kalibrasi, konsistensi EB/WB, uji GeoCalib, keputusan GT |
 | `svld/` | Validasi SVLD-3D test: kalibrasi, geometri, sensitivitas, subset sudut |
 | `svld-trainval/` | **SVLD-3D trainval**: 14.592 gambar, 700 Truck, 1.166 Bus; kalibrasi, fit truk/bus, peringatan `veh_size` preset |
+| `svld-geocalib/` | **GeoCalib vs SVLD GT**: 100 citra, 5 scene; f dan pitch; 20/100 lulus; multi 1/5 |
+| `svld-vp/` | **VP jalan vs SVLD GT**: 95/100 (f GT), median per scene 5/5; lebar lajur 2,7–3,56 m |
 | `keypoint/` | Detectability keypoint dan mask-based fitting pada SVLD |
 | `timepass/` | Side-view Cawang dan fitting kontainer |
 | `calib-compare/` | GeoCalib vs AnyCalib vs VP vs Cawang dengan anchor `w=3,60 m` |
@@ -84,6 +86,30 @@ Angka yang dipakai di dokumen utama semuanya ada di `summary.json`, `*_summary.j
 | `fit_distance.csv` | Galat panjang per jarak: 0,15% (<35 m) → 4,39% (>150 m) |
 
 Hasil pokok: kalibrasi trainval konsisten; box 20 m dan bus 12,6 m dapat direkonstruksi; **panjang memburuk dengan jarak**, W/H stabil. Label dimensi adalah preset, jadi bukan accuracy claim.
+
+### `svld-geocalib/`
+
+| Berkas | Isi |
+|---|---|
+| `README.md` | Uji akurasi GeoCalib vs GT SVLD: 100 citra, 5 scene, single + multi-frame |
+| `summary.csv` | Ringkasan per scene/split: Δf, Δpitch, jumlah lulus |
+| `single.csv` | 100 baris single-frame: GT, GeoCalib, galat, status |
+| `multi.csv` | 5 baris multi-frame per scene |
+
+Hasil pokok: **20/100 citra lulus** (hanya `session0_centre`); Δf median 14,9%, Δpitch median 3,03°; multi-frame 1/5. Yaw dan tinggi kamera tidak diuji karena GeoCalib tidak mengestimasi keduanya.
+
+### `svld-vp/`
+
+| Berkas | Isi |
+|---|---|
+| `README.md` | Uji VP jalan, perbandingan f GT vs f GeoCalib, dan pengukuran lebar lajur |
+| `summary.csv` | Ringkasan VP per scene/split/sumber f: Δpitch, Δyaw, lulus |
+| `lane_width.csv` | Lebar lajur dari marka vs posisi lateral box 3D per scene |
+| `vp_scene_median.csv` | Median VP per scene: 5/5 lulus dengan f GT; 2/5 dengan f GeoCalib |
+| `vp_gt.csv`, `vp_geo.csv` | 100 baris hasil VP dengan f GT dan f GeoCalib |
+| `lane_width_frames.csv` | Lebar lajur per frame dari marka |
+
+Hasil pokok: VP + `f` GT **95/100** lulus pitch/yaw <2° (median 0,20°/0,05°); median VP per scene **5/5** <0,5°. VP + `f` GeoCalib **47/100** (2,46°/1,12°); GeoCalib saja 20/100. VP memberi yaw; `f` tetap bottleneck. Lebar lajur **2,7–3,56 m**; 3,6 m tidak universal.
 
 ### `keypoint/`
 

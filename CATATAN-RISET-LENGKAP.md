@@ -20,7 +20,8 @@ Dokumen ini adalah **ringkasan master**. Detail ada di berkas yang ditautkan di 
 |---|---|---|
 | Geometri/parameterisasi | **terbukti (self-consistency)** | MAPE 0,36% dengan 8 sudut GT; **`veh_size` preset**, bukan ukur fisik |
 | Kalibrasi SVLD | **terverifikasi** | median reproyeksi 0,74 px |
-| GeoCalib | **tidak reliabel di SVLD** | 1/5 scene lulus |
+| GeoCalib | **tidak reliabel di SVLD** | 1/5 scene; 20/100 citra; multi 1/5 |
+| VP jalan | **kuat jika f benar** | 95/100 (f GT), 47/100 (f GeoCalib); yaw tersedia |
 | Lebar/tinggi (mask) | **layak screening** | W 7,1%, H 7,6% |
 | Panjang (mask) | **belum layak** | L 21,9% |
 | Keypoint zero-shot | **belum cukup** | Car 44,1%, Bus 0% |
@@ -97,17 +98,21 @@ ISO 668: 20 ft = 6,058 m; 40 ft = 12,192 m; 45 ft = 13,716 m; lebar 2,438 m; tin
 | pitch | 2,432° |
 | yaw | 0,271° |
 | $h$ | 8,876 m |
-| $w$ (anchor) | 3,60 m |
+| $w$ (anchor) | 3,60 m (asumsi) |
 | RMS | 1,097 px |
+
+> **Catatan 20 November 2026:** `w=3,60 m` adalah **asumsi**, bukan pengukuran. Hasil Cawang ini hanya valid relatif terhadap anchor tersebut. Data SVLD memberi lebar lajur **2,7–3,56 m** tergantung metode; 3,6 m tidak universal. Ukur lebar lajur aktual sebelum memakai `h`/skala absolut.
 
 Empat set parameter (A–D) memfit citra hampir sama; perbedaan proyeksi maksimum 1,37 px. Kalibrasi geometrik berhasil, identifikasi parameter tidak.
 
 ### 4.2 GeoCalib
 
 - Rekaman 480×360: $f=616\pm30$ px, pitch 12,1°; VP 11,0° → selisih 1,1°.
-- SVLD 5 scene: hanya **1/5** lulus f<5% dan pitch<2°; f meleset 2,1–51,0%, pitch 0,81–4,99°.
+- SVLD 5 scene: hanya **1/5** lulus f<5% dan pitch<2°; f meleset 2,1-51,0%, pitch 0,81-4,99°. Uji 100 citra (10 test + 10 trainval/scene): **20/100 lulus**, median Δf **14,9%**, Δpitch **3,03°**; multi 1/5. Detail: `reports/svld-geocalib/README.md`.
 - Cawang 720p (median2): f=943,3 px, pitch 1,995°; multi-frame shared f=969,6. Terhadap dash fit (f=1082,6; RMS 1,097 px), GeoCalib 9–13% terlalu rendah; RMS fixed-pose 3,1–4,4 px. Varian distorted+radial f=890,3. **Bukan pengganti f atau pitch dash.**
 - AnyCalib (Cawang): f bergantung frame, 1100–1207 px; frame TEMA 1100 px (+1,6%, RMS 1,215 px), median2 1183 px (+9,3%). Berguna sebagai cek independen per frame, bukan kalibrasi tunggal. Detail: `reports/calib-compare/README.md`.
+- **VP jalan** 100 citra: dengan `f` GT **95/100** lulus pitch/yaw <2° (median 0,20°/0,05°); dengan `f` GeoCalib **47/100** (median 2,46°/1,12°). Median VP per scene: **5/5** dengan f GT (maks 0,43°/0,14°), 2/5 dengan f GeoCalib. VP memberi **yaw** yang tidak dimiliki GeoCalib; `f` adalah bottleneck. `1cam` 4/20 outlier per frame. Detail: `reports/svld-vp/README.md`.
+- **Lebar lajur SVLD tidak universal 3,6 m**: estimasi kendaraan 2,7–3,25 m; marka 3,0–3,56 m. Untuk skala absolut, ukur per lokasi; jangan pakai 3,6 m buta.
 - Kesimpulan: GeoCalib/AnyCalib berguna sebagai pembanding, tetapi **wajib divalidasi per scene**. Jangan jadikan satu-satunya sumber $f$.
 
 ### 4.2.1 Combo GeoCalib + AnyCalib + VP + anchor lebar jalan
@@ -116,7 +121,7 @@ Komponen ini cukup untuk membentuk homografi metrik, tetapi **belum cukup jika h
 
 - `f` GeoCalib di Cawang 943–980 px (9–13% terlalu rendah); AnyCalib 1100–1207 px tergantung frame.
 - VP dari garis (`vpfit`) beda 0,21° pitch dan 0,34° yaw dari dash fit; RMS fixed pose 1,333 px vs 1,101 px.
-- `w=3,60 m` masih asumsi; error skala ±4% menjadi sekitar ±9 cm pada 30 m.
+- `w=3,60 m` masih asumsi; error skala ±4% menjadi sekitar ±9 cm pada 30 m. Data SVLD: lebar lajur **2,7–3,56 m** tergantung metode; ukur per lokasi.
 - GeoCalib melihat roll −0,54°; model dash Cawang mengabaikan roll. Bisa jadi superelevasi nyata, bukan sekadar error model.
 
 Syarat agar combo ini cukup:
@@ -276,9 +281,10 @@ Grounding DINO tiny + SAM 2.1 tiny.
 | I24-3D bukan GT f/pose | gerbang kalibrasi tidak bisa dijalankan | pakai SVLD/pengukuran lapangan; I24 untuk GT dimensi/ground-plane |
 | Situs I24-3D menolak `curl` (WAF) | otomasi gagal | data 50,04 GB sudah diunduh via browser; tidak perlu curl |
 | Tanpa GT lokal Indonesia | klaim akurasi terbatas | SVLD/Cawang proksi; field test |
-| Cawang pitch 2,43° | degenerasi terburuk | anchor lebar lajur 3,60 m |
+| Cawang pitch 2,43° | degenerasi terburuk | ukur anchor lebar lajur; 3,60 m hanya asumsi |
 | Jalan Cawang melengkung | galat sistematis | batasi segmen lurus |
 | Kalibrasi Cawang tanpa GT | hanya konsistensi | standar kontainer 20 ft |
+| Anchor 3,6 m diasumsikan | skala bisa salah 5%+ | ukur lebar lajur per lokasi; SVLD 2,7–3,56 m |
 | Mask body tanpa ban | panjang bias | lower envelope; SAM2 container-only |
 | Kecepatan tidak stabil | time-of-passage mentah | track lebih panjang; garis crossing |
 | Lisensi non-komersial | tidak untuk produk | validasi riset; data sendiri |
@@ -310,7 +316,7 @@ Grounding DINO tiny + SAM 2.1 tiny.
 |---|---|---|
 | CAROM Air (Lu dkk., ICRA 2023) | keypoint + model bentuk, EKF, drone | weak perspective; tidak transfer langsung ke CCTV |
 | CAROM (Lu dkk., ICRA 2021) | infrastruktur, mask + tangent hull | pendahulu untuk CCTV |
-| GeoCalib (Veicht dkk., ECCV 2024) | f, pitch, roll dari 1 citra | 1/5 SVLD; wajib cek VP |
+| GeoCalib (Veicht dkk., ECCV 2024) | f, pitch, roll dari 1 citra | 1/5 scene; 20/100 citra; wajib cek VP |
 | SVLD-3D / CenterLoc3D (Tang dkk.) | 2.237 citra, GT L/W/H, kalibrasi | truk hanya 1; kamera rear/front |
 | I24-3D (Gloudemans dkk., BMVC 2023) | 16–18 kamera, 877k box, P/H/VP | data tersedia; **bukan GT f/pose** (P z-scale ad hoc); aerial 28–45 m, bukan side-view |
 | SKoPe3D (Pahadia dkk., ITSC 2023) | 25k CARLA, 33 keypoint, side CCTV | tidak ada bobot pretrained |

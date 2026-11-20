@@ -1,0 +1,6 @@
+scene,mark_n,mark_median_m,mark_p25_m,mark_p75_m,vehicle_peaks_m,vehicle_widths_m,vehicle_median_m,note
+0cam,30,3.508,2.907,4.083,-10.05;-7.05;-4.45;-1.45,3.00;2.60;3.00,3.0,marka noisy; posisi kendaraan lebih stabil
+1cam,14,2.989,2.92,2.998,-7.55;-1.85;0.85,2.70,2.7,"marka 3,0 m; kendaraan 2,7 m; butuh ukur lapangan"
+session0_centre,16,3.0,2.473,3.391,-0.05;8.45;11.65;18.25;20.55;24.65,3.20;4.10,3.65,"3,2 m; 4,1 m kemungkinan lajur lebar/bahu; marka noisy"
+session0_right,74,3.529,3.343,3.641,-8.25;-3.05;0.15;3.35;10.95;13.95,3.20;3.20;3.00,3.2,marka noisy; posisi kendaraan lebih stabil
+session6_right,14,3.558,3.108,3.718,-14.25;-9.65;-6.35;-3.15,3.30;3.20,3.25,marka noisy; posisi kendaraan lebih stabil

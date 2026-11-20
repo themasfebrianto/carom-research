@@ -174,7 +174,9 @@ Jadi presisi 85% berarti **jumlah** galat relatif ketiga sumbu ≈ 15%, bukan 15
 
 Yang penting: **kode model CenterLoc3D tidak tersedia di repo dataset.** Yang tersedia adalah dataset dan devkit. Jadi SVLD-3D bukan solusi siap pakai; ia adalah **benchmark** untuk mengukur pipeline kita sendiri.
 
-**Peringatan dari uji mini.** Kalibrasi SVLD terverifikasi lewat reproyeksi 8.142 objek: median RMS 0,74 px, maksimum 1,08 px. Tetapi GeoCalib hanya lulus **1 dari 5** scene (f<5%, pitch<2°): f meleset 10–51% dan pitch 0,8–5,0°. Untuk SVLD, pakai kalibrasi XML; jangan pakai GeoCalib sebagai sumber $f$. Ini justru bukti bahwa gerbang §0.3.2 SOP bekerja.
+**Peringatan dari uji mini.** Kalibrasi SVLD terverifikasi lewat reproyeksi 8.142 objek: median RMS 0,74 px, maksimum 1,08 px. Tetapi GeoCalib hanya lulus **1 dari 5** scene (f<5%, pitch<2°): f meleset 10-51% dan pitch 0,8-5,0°. Uji lanjutan 100 citra (10 test + 10 trainval per scene) mengonfirmasi: **20/100 lulus**, Δf median 14,9%, Δpitch 3,03°, multi-frame 1/5; hanya `session0_centre` yang layak.
+
+**VP jalan** pada 100 citra yang sama: dengan `f` GT **95/100** lulus pitch/yaw <2° (median 0,20°/0,05°); dengan `f` GeoCalib **47/100** (median 2,46°/1,12°). VP memberi **yaw** yang tidak dimiliki GeoCalib; `f` tetap bottleneck. Urutan yang masuk akal: `f` dari dash fit/known camera/anchor → VP untuk yaw/pitch. **Lebar lajur bukan 3,6 m universal**: data SVLD memberi 2,7–3,56 m; ukur per lokasi. Untuk SVLD, pakai kalibrasi XML; jangan pakai GeoCalib sebagai sumber $f$. Ini justru bukti bahwa gerbang §0.3.2 SOP bekerja. Detail: `reports/svld-geocalib/README.md` dan `reports/svld-vp/README.md`.
 
 **Uji geometri 50 objek.** Dengan 8 sudut 2D GT + kalibrasi XML, fitting 3D box memberi MAPE $L/W/H$ **0,36%** dan RMS reproyeksi **0,35 px** (26 Car, 24 Bus). Artinya kalibrasi dan fitting sudah benar; yang belum diuji adalah keypoint/detektor. Detail: `out/svld/fit_dims_report.md`.
 

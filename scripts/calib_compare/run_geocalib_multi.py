@@ -28,7 +28,12 @@ def main() -> None:
     from geocalib import GeoCalib
 
     model = GeoCalib(weights=args.weights)
-    paths = sorted(Path(args.folder).glob("*.png"))
+    paths = sorted(
+        p for p in Path(args.folder).iterdir()
+        if p.suffix.lower() in (".png", ".jpg", ".jpeg")
+    )
+    if not paths:
+        raise SystemExit(f"no images under {args.folder}")
     images = [model.load_image(p) for p in paths]
     batch = torch.stack(images)
     out = model.calibrate(batch, shared_intrinsics=True)
