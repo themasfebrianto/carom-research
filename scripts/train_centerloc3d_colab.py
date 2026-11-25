@@ -108,7 +108,7 @@ def main():
 
     from dataset.dataloader import Bbox3dDatasets, bbox3d_dataset_collate
     from nets.fpn import KeyPointDetection
-    from utils.loss import focal_loss, reg_iou_loss, reg_l1_loss, reproject_l1_loss
+    from utils.loss import focal_loss, reg_iou_loss_diff as reg_iou_loss, reg_l1_loss, reproject_l1_loss
 
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
