@@ -22,6 +22,10 @@ Dokumen ini adalah **ringkasan master**. Detail ada di berkas yang ditautkan di 
 | Kalibrasi SVLD | **terverifikasi** | median reproyeksi 0,74 px |
 | GeoCalib | **tidak reliabel di SVLD** | 1/5 scene; 20/100 citra; multi 1/5 |
 | VP jalan | **kuat jika f benar** | 95/100 (f GT), 47/100 (f GeoCalib); yaw tersedia |
+| AnyCalib | **tidak membantu f** | 6/100; median 18,2% |
+| Lane fit f | **belum berhasil** | 0/45; lane extraction |
+| Vertical VP otomatis | **belum layak** | 0cam 2/20; 1cam 4/18 |
+| GlobustVP | **tidak turnkey** | vertikal 24–35°, 0 inlier |
 | Lebar/tinggi (mask) | **layak screening** | W 7,1%, H 7,6% |
 | Panjang (mask) | **belum layak** | L 21,9% |
 | Keypoint zero-shot | **belum cukup** | Car 44,1%, Bus 0% |
@@ -98,10 +102,10 @@ ISO 668: 20 ft = 6,058 m; 40 ft = 12,192 m; 45 ft = 13,716 m; lebar 2,438 m; tin
 | pitch | 2,432° |
 | yaw | 0,271° |
 | $h$ | 8,876 m |
-| $w$ (anchor) | 3,60 m (asumsi) |
+| $w$ (anchor) | 3,60 m (asumsi; divalidasi 20 ft Cawang −0,2%) |
 | RMS | 1,097 px |
 
-> **Catatan 20 November 2026:** `w=3,60 m` adalah **asumsi**, bukan pengukuran. Hasil Cawang ini hanya valid relatif terhadap anchor tersebut. Data SVLD memberi lebar lajur **2,7–3,56 m** tergantung metode; 3,6 m tidak universal. Ukur lebar lajur aktual sebelum memakai `h`/skala absolut.
+> **Catatan 20 November 2026:** `w=3,60 m` adalah **asumsi**, bukan pengukuran. Hasil Cawang ini hanya valid relatif terhadap anchor tersebut. **Kontainer 20 ft TEMA (6,046 vs 6,058 m, −0,2%) memvalidasi skala 3,6 m di Cawang**; secara linear memberi `w_est ≈ 3,60 m`; 40 ft SINKOR tetap ambigu 40/45 ft. Data SVLD memberi lebar lajur **2,7–3,56 m**; 3,6 m tidak universal. Untuk lokasi lain, ukur lebar lajur aktual sebelum memakai `h`/skala absolut. Detail: `reports/cawang-container-anchor/README.md`.
 
 Empat set parameter (A–D) memfit citra hampir sama; perbedaan proyeksi maksimum 1,37 px. Kalibrasi geometrik berhasil, identifikasi parameter tidak.
 
@@ -112,8 +116,16 @@ Empat set parameter (A–D) memfit citra hampir sama; perbedaan proyeksi maksimu
 - Cawang 720p (median2): f=943,3 px, pitch 1,995°; multi-frame shared f=969,6. Terhadap dash fit (f=1082,6; RMS 1,097 px), GeoCalib 9–13% terlalu rendah; RMS fixed-pose 3,1–4,4 px. Varian distorted+radial f=890,3. **Bukan pengganti f atau pitch dash.**
 - AnyCalib (Cawang): f bergantung frame, 1100–1207 px; frame TEMA 1100 px (+1,6%, RMS 1,215 px), median2 1183 px (+9,3%). Berguna sebagai cek independen per frame, bukan kalibrasi tunggal. Detail: `reports/calib-compare/README.md`.
 - **VP jalan** 100 citra: dengan `f` GT **95/100** lulus pitch/yaw <2° (median 0,20°/0,05°); dengan `f` GeoCalib **47/100** (median 2,46°/1,12°). Median VP per scene: **5/5** dengan f GT (maks 0,43°/0,14°), 2/5 dengan f GeoCalib. VP memberi **yaw** yang tidak dimiliki GeoCalib; `f` adalah bottleneck. `1cam` 4/20 outlier per frame. Detail: `reports/svld-vp/README.md`.
+- **AnyCalib** 100 citra: **6/100** lulus Δf<5% (median 18,2%); fusion Geo+Any tidak mengalahkan GeoCalib; VP + AnyCalib **34/100**. `f` dari pitch GeoCalib + VP juga gagal (median 21,6%). Detail: `reports/svld-calib-fusion/README.md`.
+- **Lane fit** (3 garis + lebar lajur): identifiabel di sintetis (f/h pulih sempurna), tetapi **0/45** citra SVLD lulus; RMS 11–139 px. Bottleneck lane extraction/assignment, bukan matematika.
+- **Vertical VP / gravitasi**: VP sejati dari GT memberi f exact; `vanishPoints` tersimpan error 2,5–26%; gravitasi GeoCalib + VP hanya `session0_centre` (20/20, 0,8%), overall 20/100. Garis vertikal otomatis LSD: 0cam 2/20 OK, 1cam 18/20 tapi hanya 4/18 lulus; sudut vs gravitasi 35–43°. **GlobustVP**: 0cam 2/3, 1cam 3/3, tetapi vertikal 24–35° dan 0 inlier; SCS tanpa MOSEK lambat/tidak stabil. Belum layak; perlu manual/deep VP.
+- **PerspectiveFields (CVPR 2023)**: f rasio 0,328 (0cam), 0,952 (1cam), 0,691/0,582/0,576 (session); VP vertikal 51-83 deg; hanya 1cam 11/20 lulus 5%. Model punya prior vFoV ~30-33 deg, gagal untuk lensa tele 10-14 deg.
+- **Vehicle VP / deep_vp**: konsep dua VP horizontal ortogonal dari kendaraan tepat, tetapi bobot pretrained OneDrive login dan tidak ada mirror. VP dari box 50 px SVLD noise (median 1,7-20 deg); f dari pasangan VP panjang-lebar jauh dari GT.
+- **3D box PnP**: 8 sudut box + dimensi memberi f 0,00-0,05% (joint per citra) dan 0,06-0,21% (satu objek) pada box GT; sensitivitas 1 px/3% dimensi/0,3 m/2 deg -> 1,86%. Butuh detektor 3D akurat; `yolo3Dbbox` lama meleset median H 20%, W 7%, L 15% (truk/bus lebih buruk). Catatan: hanya dimensi + 8 sudut 2D (tanpa posisi world) ambigu; 1cam/session0 bisa salah minimum. Detail: `reports/svld-vehicle-vp/README.md`.
+- **Depth Pro (ICLR 2025)**: f rasio 0,979 (session0_centre), 0,870 (1cam), 0,652 (session6_right), 0,546 (0cam), 0,441 (session0_right); hanya 1 scene <5%; CPU 3-5 menit/citra.
+- **Survey 3D detector**: CenterLoc3D (khusus SVLD-3D, MIT, tanpa pretrained weight), BEVHeight++/CoBEV (pretrained roadside, GPU), Pro3D (SOTA 2026, code/ckpt belum), MonoDGP/MonoDETR (KITTI, domain beda), 3D-MOOD (open-set, bisa CPU via LibreYOLO). Detail: `reports/3d-detector-survey/README.md`. Model f generik tetap tidak bisa menggantikan kalibrasi per-kamera.
 - **Lebar lajur SVLD tidak universal 3,6 m**: estimasi kendaraan 2,7–3,25 m; marka 3,0–3,56 m. Untuk skala absolut, ukur per lokasi; jangan pakai 3,6 m buta.
-- Kesimpulan: GeoCalib/AnyCalib berguna sebagai pembanding, tetapi **wajib divalidasi per scene**. Jangan jadikan satu-satunya sumber $f$.
+- Kesimpulan: GeoCalib/AnyCalib berguna sebagai pembanding, tetapi **wajib divalidasi per scene**. Jangan jadikan satu-satunya sumber $f$. f harus dari geometri/known camera/anchor.
 
 ### 4.2.1 Combo GeoCalib + AnyCalib + VP + anchor lebar jalan
 
@@ -121,7 +133,7 @@ Komponen ini cukup untuk membentuk homografi metrik, tetapi **belum cukup jika h
 
 - `f` GeoCalib di Cawang 943–980 px (9–13% terlalu rendah); AnyCalib 1100–1207 px tergantung frame.
 - VP dari garis (`vpfit`) beda 0,21° pitch dan 0,34° yaw dari dash fit; RMS fixed pose 1,333 px vs 1,101 px.
-- `w=3,60 m` masih asumsi; error skala ±4% menjadi sekitar ±9 cm pada 30 m. Data SVLD: lebar lajur **2,7–3,56 m** tergantung metode; ukur per lokasi.
+- `w=3,60 m` masih asumsi; error skala ±4% menjadi sekitar ±9 cm pada 30 m. **Cawang 20 ft TEMA 6,046 (−0,2%) mendukung 3,6 m di lokasi ini**; 40 ft SINKOR ambigu 40/45 ft. Data SVLD: lebar lajur **2,7–3,56 m**; untuk lokasi lain, ukur per lokasi.
 - GeoCalib melihat roll −0,54°; model dash Cawang mengabaikan roll. Bisa jadi superelevasi nyata, bukan sekadar error model.
 
 Syarat agar combo ini cukup:
@@ -165,6 +177,8 @@ Syarat agar combo ini cukup:
 | W | 0,15% | 0,12% | 0,33% | 0,44% |
 | H | 0,30% | 0,23% | 0,53% | 1,25% |
 | RMS | 0,35 px | 0,35 px | 0,41 px | 0,46 px |
+
+**Kendaraan well-known bukan anchor independen.** `veh_size` SVLD adalah preset dan `vertex2d` adalah proyeksi box preset. Contoh: bus Higer KLQ6129 (kelas 12 m) di `real_scene_cam0_003368` diberi 12,6 × 2,75 × 2,8 m; kelas 12 m biasanya ≈12,0 × 2,55 × 3,2 m. Uji anchor yang sah butuh datasheet model/year + anotasi manual 8 sudut/5 titik, 3–5 instance; perkiraan 3–5%, tidak sebaik container 20 ft Cawang (0,2%). Detail: `reports/svld-vehicle-anchor/README.md`.
 
 ### 4.5 Sensitivitas noise
 
@@ -284,7 +298,7 @@ Grounding DINO tiny + SAM 2.1 tiny.
 | Cawang pitch 2,43° | degenerasi terburuk | ukur anchor lebar lajur; 3,60 m hanya asumsi |
 | Jalan Cawang melengkung | galat sistematis | batasi segmen lurus |
 | Kalibrasi Cawang tanpa GT | hanya konsistensi | standar kontainer 20 ft |
-| Anchor 3,6 m diasumsikan | skala bisa salah 5%+ | ukur lebar lajur per lokasi; SVLD 2,7–3,56 m |
+| Anchor 3,6 m diasumsikan | skala bisa salah 5%+ | Cawang 20 ft valid −0,2%; lokasi lain ukur lajur; SVLD 2,7-3,56 m |
 | Mask body tanpa ban | panjang bias | lower envelope; SAM2 container-only |
 | Kecepatan tidak stabil | time-of-passage mentah | track lebih panjang; garis crossing |
 | Lisensi non-komersial | tidak untuk produk | validasi riset; data sendiri |
@@ -359,6 +373,21 @@ Skrip penting:
 | `svld_reproj_check.py` | verifikasi kalibrasi SVLD |
 | `svld_fit_dims.py` | fit 3D box; test 50 objek, trainval 120 Truck + 174 Bus (`--classes`) |
 | `svld_sensitivity.py` | sensitivitas noise |
+| `svld_perspective_fields.py` | PerspectiveFields 100 citra; f/vFoV/VP vertikal |
+| `svld_vehicle_vp_check.py` | VP dari 8 sudut box kendaraan SVLD |
+| `svld_box_calib.py` | PnP kamera dari box 3D kendaraan (f/phi/theta/h) |
+| `svld_box_calib_sensitivity.py` | sensitivitas noise 2D/dimensi/posisi/yaw |
+| `svld_box_calib_scene.py` | agregasi banyak box per scene |
+| `box_pnp_calib.py` | tool PnP reusable dari 8 titik 3D world-space |
+| `box_pnp_known_dims.py` | eksperimen box lokal (dimensi + 8 sudut; ambigu) |
+| `svld_box_known_dims_eval.py` | evaluasi box lokal pada 50 objek SVLD |
+| `svld_yolo3d_selfcal.py` | uji self-cal `yolo3Dbbox` |
+| `svld_yolo3d_dims.py` | bandingkan dimensi prediksi `yolo3Dbbox` vs GT |
+| `svld_depthpro.py` | uji f Depth Pro (CPU) |
+| `train_centerloc3d_colab.py` | training CenterLoc3D + AMP + checkpoint/resume |
+| `make_centerloc3d_txt.py` | generate annotation lines SVLD, skip gambar hilang |
+| `patch_centerloc3d.py` | patch NumPy 2/PyTorch 2 untuk CenterLoc3D |
+| `make_colab_notebook.py` | generator notebook Colab |
 | `svld_subsets.py` | subset sudut |
 | `svld_kp_detectability.py` | keypoint zero-shot |
 | `svld_mask_fit.py` | mask-based W/H/L |

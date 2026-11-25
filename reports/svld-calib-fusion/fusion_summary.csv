@@ -1,0 +1,14 @@
+split,scene,n,pass_vp_gt,pass_vp_geo,pass_vp_any,f_geo_pitch_median_pct
+all,ALL,100,95,47,34,21.59
+test,ALL,50,47,23,16,24.58
+test,0cam,10,9,0,0,47.16
+test,1cam,10,8,2,6,37.81
+test,session0_centre,10,10,10,10,15.25
+test,session0_right,10,10,10,0,8.19
+test,session6_right,10,10,1,0,24.85
+trainval,ALL,50,48,24,18,17.86
+trainval,0cam,10,10,0,0,38.2
+trainval,1cam,10,8,0,6,33.88
+trainval,session0_centre,10,10,10,10,15.54
+trainval,session0_right,10,10,10,1,7.85
+trainval,session6_right,10,10,4,1,20.47

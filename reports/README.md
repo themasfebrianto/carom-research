@@ -3,9 +3,9 @@
 Salinan kurasi dari folder kerja `out/`. Folder `out/` tetap di-`.gitignore` karena berisi gambar, mask, model, dan dataset; folder ini hanya memuat **laporan, ringkasan, dan tabel kecil** yang cukup untuk mengaudit angka di dokumen utama.
 
 - Dikumpulkan: 19 November 2026
-- HEAD saat dikumpulkan: `9657fd1` (plus perubahan lokal parser & laporan I24-3D)
+- HEAD saat dikumpulkan: `a29c5dd` (plus perubahan lokal anchor container Cawang)
 - Format: UTF-8; tidak ada citra, video, bobot model, atau dataset
-- Jumlah: 88 berkas
+- Jumlah: 102 berkas
 
 ## Indeks
 
@@ -20,8 +20,13 @@ Salinan kurasi dari folder kerja `out/`. Folder `out/` tetap di-`.gitignore` kar
 | `svld-trainval/` | **SVLD-3D trainval**: 14.592 gambar, 700 Truck, 1.166 Bus; kalibrasi, fit truk/bus, peringatan `veh_size` preset |
 | `svld-geocalib/` | **GeoCalib vs SVLD GT**: 100 citra, 5 scene; f dan pitch; 20/100 lulus; multi 1/5 |
 | `svld-vp/` | **VP jalan vs SVLD GT**: 95/100 (f GT), median per scene 5/5; lebar lajur 2,7–3,56 m |
+| `svld-vehicle-anchor/` | **Kendaraan well-known sebagai anchor**: bus Higer 12,6 vs kelas 12 m; anotasi SVLD sirkular |
+| `svld-calib-fusion/` | **AnyCalib + fusion f + lane fit**: AnyCalib 6/100; VP+Any 34/100; lane fit 0/45 |
+| `svld-vehicle-vp/` | **PerspectiveFields + vehicle VP + 3D box PnP**: PF gagal 4/5 scene; deep_vp dicek; 3D box GT f 0,00-0,21% |
+| `3d-detector-survey/` | **Survey 3D detector**: CenterLoc3D (SVLD, no weights), BEVHeight++/CoBEV (pretrained roadside), Pro3D, MonoDGP, 3D-MOOD |
 | `keypoint/` | Detectability keypoint dan mask-based fitting pada SVLD |
 | `timepass/` | Side-view Cawang dan fitting kontainer |
+| `cawang-container-anchor/` | **Anchor fisik Cawang**: 20 ft TEMA −0,2%; 40 ft SINKOR ambigu 40/45 ft |
 | `calib-compare/` | GeoCalib vs AnyCalib vs VP vs Cawang dengan anchor `w=3,60 m` |
 | `learnpinhole-video/` | Uji combo pada video tes LearnPinhole (480×360) |
 | `geocalib-anycalib/` | Pros/cons GeoCalib vs AnyCalib + persiapan I24-3D |
@@ -111,6 +116,27 @@ Hasil pokok: **20/100 citra lulus** (hanya `session0_centre`); Δf median 14,9%,
 
 Hasil pokok: VP + `f` GT **95/100** lulus pitch/yaw <2° (median 0,20°/0,05°); median VP per scene **5/5** <0,5°. VP + `f` GeoCalib **47/100** (2,46°/1,12°); GeoCalib saja 20/100. VP memberi yaw; `f` tetap bottleneck. Lebar lajur **2,7–3,56 m**; 3,6 m tidak universal.
 
+### `svld-vehicle-anchor/`
+
+| Berkas | Isi |
+|---|---|
+| `README.md` | Uji kelayakan kendaraan well-known sebagai anchor; contoh bus Higer KLQ6129; mengapa anotasi SVLD sirkular |
+
+Hasil pokok: `veh_size` SVLD preset; bus Higer kelas 12 m diberi 12,6 × 2,75 × 2,8 m. Anchor kendaraan hanya sah dengan datasheet model/year + anotasi manual 8 sudut/5 titik, 3–5 instance; perkiraan 3–5%, tidak sebaik container 20 ft Cawang (0,2%).
+
+### `svld-calib-fusion/`
+
+| Berkas | Isi |
+|---|---|
+| `README.md` | AnyCalib 100 citra, fusion f, VP+Any/Geo/GT, lane fit sintetis vs nyata |
+| `anycalib_summary.csv` | AnyCalib vs GeoCalib per scene/split |
+| `fusion_summary.csv` | VP + f GT/Geo/Any dan f dari pitch GeoCalib |
+| `lane_fit_summary.csv` | Lane fit: 0/45 OK; RMS dan Δf per scene |
+| `vertical_vp_summary.csv` | Vertical VP otomatis: 0cam 2/20; 1cam 18/20 tapi 4/18 lulus |
+| `globustvp_summary.csv` | GlobustVP: 0cam 2/3, 1cam 3/3, tapi vertikal 24–35° dan 0 inlier |
+
+Hasil pokok: AnyCalib **6/100** (median 18,2%), GeoCalib 20/100; VP+Any **34/100**, VP+Geo 47/100, VP+GT 95/100. Fusion tidak membantu. Lane fit identifiabel di sintetis, tetapi **0/45** nyata karena lane extraction. Vertical VP otomatis belum layak (0cam 2/20; 1cam 4/18). GlobustVP tidak turnkey (vertikal 24–35°, 0 inlier).
+
 ### `keypoint/`
 
 | Berkas | Isi |
@@ -134,6 +160,18 @@ Hasil pokok: VP + `f` GT **95/100** lulus pitch/yaw <2° (median 0,20°/0,05°);
 | `container20/container_fit.json` | **Hasil bersih** 20 ft TEMA: 6,046 m vs 6,058 m (−0,2%), IoU 0,972 |
 
 Catatan: `container_fit_report.md` adalah percobaan lama dengan threshold warna HSV. Hasil yang berlaku adalah `container20/container_fit.json` dan bagian "Validasi 20 ft" di `../HASIL-TIMEPASS-CAWANG.md`; mask-nya berasal dari Grounded SAM 2 dengan box prompt container-only.
+
+### `cawang-container-anchor/`
+
+| Berkas | Isi |
+|---|---|
+| `README.md` | Anchor fisik Cawang: 20 ft TEMA vs standar, 40 ft SINKOR ambigu, implikasi 3,6 m |
+| `container_anchor.csv` | Ringkasan 20 ft dan 40 ft GrabCut |
+| `container_anchor.json` | Versi JSON tabel |
+| `20ft_tema_fit.json` | Fit 20 ft terverifikasi: L 6,046 m (−0,2%), W 2,437 m |
+| `40ft_sinkor_grabcut_fit.json` | Fit 40 ft GrabCut: L 12,45 m; W bias side-view |
+
+Hasil pokok: 20 ft TEMA memvalidasi skala Cawang (3,6 m) dalam ~0,2%; 40 ft SINKOR tetap ambigu 40/45 ft (SAM2 13,99 m vs GrabCut 12,45 m). Tanpa lapangan, 20 ft adalah physical anchor terbaik.
 
 ### `calib-compare/`
 

@@ -1,0 +1,3 @@
+object,image,L_m,W_m,IoU,standard_L_m,standard_W_m,eL_pct,eW_pct,note
+20ft_tema,t247.jpg,6.046,2.437,0.9719,6.058,2.438,0.2,0.04,verified SAM2 mask; length+width anchor
+40ft_sinkor_grabcut,truck86.jpg,12.45,2.1,0.7921,12.192,2.438,2.12,13.86,length only; W biased by side mask; type 40 vs 45 ft unknown

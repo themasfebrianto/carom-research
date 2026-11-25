@@ -1,0 +1,4 @@
+﻿"scene","n","found3","z_median_deg","z_min_deg","vertical_inliers_best","note"
+"0cam","3","2","24.35","2.85","0","best 2.85 deg comes from cross-product VP, 0 line inliers"
+"1cam","3","3","35.19","31.09","0","wrong vertical; 0-6 inliers"
+"session0_right","1","0","","","","NO_3VP with 20 lines"

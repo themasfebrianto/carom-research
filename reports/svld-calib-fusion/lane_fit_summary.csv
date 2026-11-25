@@ -1,0 +1,4 @@
+scene,n,ok_rms_le_5px,fit_bad,fit_failed,no_vp,df_median_pct,df_min_pct,df_max_pct,rms_median_px,rms_max_px
+0cam,5,0,4,1,0,60.27,39.1,87.67,70.62,138.66
+session0_right,20,0,19,1,0,64.47,10.49,86.65,30.73,65.75
+session6_right,20,0,11,9,0,60.34,0.58,77.29,59.74,127.77

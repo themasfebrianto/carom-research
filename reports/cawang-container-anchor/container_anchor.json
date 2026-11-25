@@ -1,0 +1,26 @@
+[
+  {
+    "object": "20ft_tema",
+    "image": "t247.jpg",
+    "L_m": 6.046,
+    "W_m": 2.437,
+    "IoU": 0.9719,
+    "standard_L_m": 6.058,
+    "standard_W_m": 2.438,
+    "eL_pct": 0.2,
+    "eW_pct": 0.04,
+    "note": "verified SAM2 mask; length+width anchor"
+  },
+  {
+    "object": "40ft_sinkor_grabcut",
+    "image": "truck86.jpg",
+    "L_m": 12.45,
+    "W_m": 2.1,
+    "IoU": 0.7921,
+    "standard_L_m": 12.192,
+    "standard_W_m": 2.438,
+    "eL_pct": 2.12,
+    "eW_pct": 13.86,
+    "note": "length only; W biased by side mask; type 40 vs 45 ft unknown"
+  }
+]

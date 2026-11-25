@@ -1,0 +1,12 @@
+{
+  "image": "out\\timepass\\t247.jpg",
+  "mask": "out\\timepass\\gsam2_20ft\\container_mask_0.npy",
+  "height_m": 2.591,
+  "L_m": 6.046,
+  "W_m": 2.437,
+  "Z0_m": 1.772,
+  "yaw_deg": -0.01,
+  "X_m": 27.47,
+  "Y_m": -7.54,
+  "iou": 0.9719
+}

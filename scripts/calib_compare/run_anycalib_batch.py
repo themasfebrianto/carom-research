@@ -36,7 +36,12 @@ def main() -> None:
     torch.set_num_threads(max(1, min(8, torch.get_num_threads())))
     from anycalib import AnyCalib
 
-    paths = sorted(Path(args.folder).glob("*.png"))
+    paths = sorted(
+        p for p in Path(args.folder).iterdir()
+        if p.suffix.lower() in (".png", ".jpg", ".jpeg")
+    )
+    if not paths:
+        raise SystemExit(f"no images under {args.folder}")
     images = []
     for p in paths:
         arr = np.array(Image.open(p).convert("RGB"))

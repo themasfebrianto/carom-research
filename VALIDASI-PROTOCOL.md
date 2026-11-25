@@ -93,6 +93,6 @@ $$
 - Setiap laporan menyebut jumlah sampel, jumlah yang gagal diproses, dan alasan.
 - Jangan membuang outlier tanpa menyebutkannya; laporkan dengan dan tanpa outlier.
 - Jangan mengklaim akurasi lebih baik dari ketidakpastian ground truth (I24-3D ±15 cm). **`veh_size` SVLD adalah preset**, jadi tidak bisa dipakai sebagai ketidakpastian fisik.
-- **Anchor lebar lajur harus diukur per lokasi**; 3,6 m hanya asumsi. Data SVLD memberi 2,7–3,56 m tergantung metode/lokasi.
+- **Anchor lebar lajur harus diukur per lokasi**; 3,6 m hanya asumsi. Kontainer 20 ft Cawang (6,046 vs 6,058 m) mendukung 3,6 m **di Cawang**; lokasi lain perlu ukur. Data SVLD 2,7–3,56 m.
 - Setiap angka harus bisa dihasilkan ulang dari skrip yang disimpan.
 - Dataset non-komersial hanya dipakai untuk validasi; bukan untuk melatih model produksi.

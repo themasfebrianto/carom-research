@@ -102,6 +102,8 @@ Fit 3D box ke mask kontainer-only dengan $H=2{,}591$ m:
 
 Perbandingan: 40 ft = 12,192 m (+14,7%); **45 ft = 13,716 m (+2,0%)**. Jenis kontainer tidak diketahui, jadi ini belum bisa disebut galat. Segmentasi sudah benar; yang tersisa adalah **identifikasi tipe kontainer** dan ambiguitas skala.
 
+**Uji mask kedua (GrabCut):** L=**12,45 m** (+2,1% vs 40 ft), W=2,10 m (bias side-view), IoU 0,792. Bersama SAM2 13,99 m, rentang **12,45–13,99 m** mencakup 40 dan 45 ft; tipe belum bisa dipastikan. Jadi 40 ft SINKOR **belum bisa dipakai sebagai anchor kedua**.
+
 ## Validasi 20 ft: kontainer TEMA
 
 Frame t=247 s; kontainer merah TEMA di lajur kiri. Box prompt SAM 2 `[255, 475, 405, 645]` memberi mask kontainer-only (21.907 px; bbox 252–418 × 473–635).
@@ -116,6 +118,8 @@ Fit 3D box dengan tinggi standar 2,591 m; crop `[230, 450, 430, 680]`:
 | IoU | 0,972 | — | — |
 
 **Ini validasi ground truth pertama yang bersih.** Dengan mask kontainer-only dan tinggi standar, panjang 20 ft tereproduksi dalam 0,2%. Skrip: `scripts/cawang_container_fit.py`.
+
+**Implikasi anchor:** karena kalibrasi Cawang memakai `w=3,6 m`, hasil 20 ft 6,046 m (−0,2%) juga **memvalidasi skala 3,6 m di Cawang**. Secara linear, kontainer memberi `w_est = 3,6 × 6,058/6,046 ≈ 3,607 m` (panjang) dan `3,602 m` (lebar) — median **≈3,60 m**. Ini bukan bukti universal: data SVLD memberi 2,7–3,56 m untuk scene lain. Detail: `reports/cawang-container-anchor/README.md`.
 
 Implikasi:
 
@@ -133,7 +137,7 @@ Implikasi:
 
 ## Langkah berikutnya
 
-1. **10–20 truk kontainer/bus** dengan standar panjang diketahui (20 ft, 40 ft, bus 12 m); bangun distribusi galat.
+1. **10-20 truk kontainer/bus** dengan standar panjang diketahui (20 ft, 40 ft, bus 12 m); bangun distribusi galat. Identifikasi tipe 40 vs 45 ft dari kode ISO, bukan hanya panjang.
 2. **Time-of-passage murni**: definisikan garis melintang pada $X_0$; catat waktu tepi depan/belakang melintas; bandingkan $L=v\,\Delta t$ dengan hasil side-view.
 3. **I24-3D satu kamera** (GT) untuk validasi akurasi, setelah akses disetujui. Catatan: SVLD tidak cocok karena semua objek menghadap depan/belakang (sudut 4–29°).
 4. **Perbaiki endpoint** dengan deteksi roda/kontak tanah, bukan lower envelope mentah.

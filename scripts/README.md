@@ -203,6 +203,14 @@ Tinggi kontainer dipaku ke standar ISO: 2,591 m (standar) atau 2,896 m (high cub
 Keluaran: `container_fit.json` dan `container_fit_overlay.jpg`.
 Hasil 20 ft TEMA: $L=6{,}046$ m vs 6,058 m (−0,2%), $W=2{,}437$ m, IoU 0,972.
 
+### 15. Anchor container Cawang
+
+```powershell
+py scripts\cawang_container_anchor.py --out out\timepass\anchor
+```
+
+Menggabungkan hasil 20 ft TEMA (SAM2) dan 40 ft SINKOR (GrabCut). Hasil: 20 ft **6,046 m (−0,2%)**; 40 ft GrabCut **12,45 m (+2,1% vs 40 ft)** tetapi W bias dan tipe 40/45 ft belum pasti. 20 ft memvalidasi skala 3,6 m **di Cawang**; lokasi lain tetap perlu ukur. Detail: `../reports/cawang-container-anchor/README.md`.
+
 ## Uji banding kalibrasi
 
 Skrip di `scripts/calib_compare/` membandingkan GeoCalib, AnyCalib, VP, dan Cawang dengan anchor `w = 3,60 m`. Hasil dan batasannya ada di `reports/calib-compare/README.md`.
@@ -258,6 +266,52 @@ py scripts\svld_vp_scene_median.py --out out\svld_vp
 
 Hasil: VP + `f` GT **95/100** lulus pitch/yaw <2° (median 0,20°/0,05°); median VP per scene **5/5** dengan f GT; VP + `f` GeoCalib **47/100** (2,46°/1,12°); GeoCalib saja 20/100. VP memberi **yaw**; `f` tetap bottleneck. Lebar lajur data-driven **2,7–3,56 m**, jadi 3,6 m bukan universal. Detail: `../reports/svld-vp/README.md`.
 
+## AnyCalib dan fusion f SVLD
+
+```powershell
+$GEO = "C:\Users\omega\AppData\Local\Temp\opencode\geoenv\Scripts\python.exe"
+foreach ($split in 'test','trainval') {
+  foreach ($scene in '0cam','1cam','session0_centre','session0_right','session6_right') {
+    & $GEO scripts\calib_compare\run_anycalib_batch.py `
+      "out\svld_geocalib\frames\$split\$scene" `
+      --model-id anycalib_pinhole --cam-id simple_pinhole `
+      --out "out\svld_anycalib\${split}_${scene}.json"
+  }
+}
+py scripts\eval_svld_anycalib.py --out out\svld_anycalib
+py scripts\eval_svld_fusion.py --out out\svld_fusion
+
+# Prototipe f/h dari geometri lajur + lebar lajur
+py scripts\svld_lane_fit.py --scene session0_right --out out\svld_lane_fit_right
+py scripts\svld_lane_fit.py --scene session6_right --out out\svld_lane_fit_s6
+
+# Dua VP ortogonal: VP jalan + VP vertikal otomatis
+py scripts\svld_vertical_vp.py --scene 0cam --out out\svld_vertical_vp_0cam
+py scripts\svld_vertical_vp.py --scene 1cam --out out\svld_vertical_vp_1cam
+
+# GlobustVP (cvxpy + SCS)
+py scripts\svld_globustvp.py --scene 0cam --limit 3 --k-mode gt `
+  --min-length 60 --max-lines 40 --line-filter all --solver SCS --eps 1e-3 `
+  --out out\svld_globustvp_0cam_all
+
+# PerspectiveFields (CVPR 2023)
+py scripts\svld_perspective_fields.py --limit 100 --batch 4 --out out\svld_perspective_fields
+
+# Cek VP dari box kendaraan SVLD
+py scripts\svld_vehicle_vp_check.py --limit 0
+
+# 3D box PnP dari box GT SVLD
+py scripts\svld_box_calib.py --manifest out\svld_geocalib\manifest.csv --out out\svld_box_calib
+D:\Kerjaan\yolo3Dbbox\.venv\Scripts\python.exe scripts\svld_yolo3d_dims.py --n 20
+
+# Tool reusable: 8 sudut 2D + 8 titik 3D world-space -> f/pitch/yaw/h
+py scripts\box_pnp_calib.py --input box.json --width 1280 --height 720 --out box_result.json
+py scripts\svld_box_calib_sensitivity.py --trials 3 --out out\svld_box_calib
+py scripts\svld_box_calib_scene.py --per-scene 30 --trials 5 --out out\svld_box_calib
+```
+
+Hasil: AnyCalib **6/100** (median Δf 18,2%), GeoCalib 20/100; fusion tidak mengalahkan GeoCalib. VP + Any **34/100**, VP + Geo **47/100**, VP + GT **95/100**. Lane fit identifiabel di sintetis, tetapi **0/45** nyata karena lane extraction/assignment. Vertical VP otomatis: 0cam **2/20** OK, 1cam 18/20 OK tetapi hanya **4/18** lulus; gravitasi GeoCalib + VP hanya `session0_centre`. GlobustVP: 0cam 2/3, 1cam 3/3, tetapi vertikal 24–35° / 0 inlier; tidak turnkey. Detail: `../reports/svld-calib-fusion/README.md`.
+
 ## Catatan teknis
 
 - **`P` I24-3D ditulis 3×4** di file (README dataset menulis `[4,3]`); parser menerima keduanya.
@@ -270,6 +324,15 @@ Hasil: VP + `f` GT **95/100** lulus pitch/yaw <2° (median 0,20°/0,05°); media
 - GeoCalib memakai pitch negatif untuk menunduk; evaluator membandingkan magnitudo absolut.
 - GeoCalib hanya mengestimasi `f`, pitch, dan roll; **yaw dan tinggi kamera tidak tersedia**, jadi jangan membandingkannya dengan GT SVLD. Roll SVLD juga tidak eksplisit.
 - `vp_pose.pose_from_vp` memakai konvensi yang sama dengan model SVLD (`R = Rx(fi + π/2) Rz(theta)`), jadi pitch/yaw VP bisa dibandingkan langsung. VP hanya memberi **road-direction VP**; `f` harus dari sumber lain.
+- **GeoCalib/AnyCalib bukan sumber f yang cukup** di SVLD: 20/100 dan 6/100. f harus dari kamera diketahui, dash fit + anchor, dua VP ortogonal, atau anotasi garis manual.
+- Lane fit klasik (LSD/Hough) baru **0/45**; matematikanya identifiabel di sintetis, tetapi lane extraction/assignment adalah bottleneck. Detector lajur yang lebih baik atau anotasi manual diperlukan.
+- Vertical VP otomatis (LSD + RANSAC) baru **0cam 2/20**, **1cam 4/18** lulus; sudut vs gravitasi 35–43°. Gravitasi GeoCalib hanya prior/consistency check, bukan sumber f. Perlu anotasi vertikal manual atau detektor Manhattan-world/NeurVPS.
+- **GlobustVP** butuh MOSEK/GPU untuk performa paper; SCS CPU sering `optimal_inaccurate` dan memaksa 3 VP. Di SVLD, VP ketiga sering cross-product tanpa inlier; vertikal 24–35°. Bukan turnkey.
+- **PerspectiveFields (CVPR 2023)** gagal di 4/5 scene SVLD: f rasio 0,33-0,95, VP vertikal 51-83 deg. Model punya prior vFoV ~30-33 deg dan tidak cocok untuk lensa tele 10-14 deg.
+- **deep_vp (ICANN 2021)** adalah konsep vehicle-VP yang tepat, tetapi bobot pretrained ada di OneDrive login dan tidak ada mirror. Geometri VP dari box 50 px SVLD masih noise (median 1,7-20 deg).
+- **3D box PnP** memakai 8 sudut box + dimensi: f 0,00-0,21% dengan box GT; sensitivitas 1 px + 3% dimensi + 0,3 m + 2 deg -> 1,86%. Butuh detektor 3D yang akurat; `yolo3Dbbox` lama meleset median H 20%, W 7%, L 15% (truk/bus lebih buruk).
+- **Box lokal vs world-space**: `box_pnp_calib.py` memakai 8 titik 3D world-space dan akurat; `box_pnp_known_dims.py` hanya memakai dimensi + 8 sudut 2D dan **ambigu** (1cam/session0 bisa salah minimum). Detektor 3D harus memberi posisi/orientasi world-space, bukan hanya dimensi.
+- **CenterLoc3D Colab**: notebook `notebooks/train_centerloc3d_colab.ipynb`; script `train_centerloc3d_colab.py` (AMP/checkpoint/resume), `make_centerloc3d_txt.py` (generate line, skip gambar hilang), `patch_centerloc3d.py` (NumPy 2/PyTorch 2). Smoke test CPU 1 iterasi sudah lolos; training penuh butuh GPU Colab.
 - Lebar lajur SVLD dari marka dan dari posisi kendaraan berbeda hingga ~0,6 m; **jangan pakai 3,6 m sebagai GT**. Untuk skala absolut, ukur per lokasi.
 - File JSON dari PowerShell bisa ber-BOM; skrip membaca dengan `utf-8-sig`.
 - Jangan menjalankan GeoCalib dan parser dari env yang sama jika dependensi bentrok; keduanya dipisah.
