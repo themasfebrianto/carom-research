@@ -308,6 +308,13 @@ def main():
                 )
             continue
 
+        improved = np.isfinite(val_loss) and val_loss < best
+        if improved:
+            best = val_loss
+
+        # Save the updated best in BOTH checkpoints.  Previously "last" kept the
+        # pre-update best, so a resume compared against a stale value and could
+        # overwrite a genuinely better checkpoint_best.pth with a worse model.
         state = {
             "epoch": epoch + 1,
             "state_dict": model.state_dict(),
@@ -316,11 +323,10 @@ def main():
             "run_tag": args.run_tag,
         }
         torch.save(state, out / "checkpoint_last.pth")
-        if np.isfinite(val_loss) and val_loss < best:
-            best = val_loss
-            state["best"] = best
-            torch.save(state, out / "checkpoint_best.pth")
         print(f"  saved {out/'checkpoint_last.pth'}", flush=True)
+        if improved:
+            torch.save(state, out / "checkpoint_best.pth")
+            print(f"  saved {out/'checkpoint_best.pth'} (best={best:.4f})", flush=True)
 
 
 if __name__ == "__main__":
