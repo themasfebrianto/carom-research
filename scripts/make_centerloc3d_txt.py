@@ -30,19 +30,33 @@ def numbers(text: str) -> list[float]:
     ]
 
 
-def annotation_line(image: Path, calib: Path, ann: Path) -> str | None:
-    root = ET.parse(ann).getroot()
+def load_xml(path: Path):
+    """Parse an annotation, returning None for empty/truncated files.
+
+    A few files in the public archives are zero bytes (bad upload or a partial
+    extraction).  They carry no objects, so skipping them loses nothing.
+    """
+    try:
+        return ET.parse(path).getroot()
+    except (ET.ParseError, OSError):
+        return None
+
+
+def annotation_line(image: Path, calib: Path, root) -> str | None:
     parts = [str(image), str(calib)]
     found = 0
     for obj in root.findall("object"):
-        cls = (obj.findtext("type") or "").strip()
-        if cls not in CLASSES:
+        try:
+            cls = (obj.findtext("type") or "").strip()
+            if cls not in CLASSES:
+                continue
+            bbox = [float(x) for x in (obj.findtext("bbox2d") or "").split()]
+            dims = [float(x) for x in (obj.findtext("veh_size") or "").split()]
+            center = [float(x) for x in (obj.findtext("veh_loc_2d") or "").split()]
+            vertex = numbers(obj.findtext("vertex2d") or "")
+            base = [float(x) for x in (obj.findtext("base_point") or "").split()]
+        except ValueError:
             continue
-        bbox = [float(x) for x in (obj.findtext("bbox2d") or "").split()]
-        dims = [float(x) for x in (obj.findtext("veh_size") or "").split()]
-        center = [float(x) for x in (obj.findtext("veh_loc_2d") or "").split()]
-        vertex = numbers(obj.findtext("vertex2d") or "")
-        base = [float(x) for x in (obj.findtext("base_point") or "").split()]
         if len(bbox) != 4 or len(dims) != 3 or len(center) != 2:
             continue
         if len(vertex) != 16 or len(base) != 2:
@@ -85,6 +99,7 @@ def main() -> None:
             continue
         ids = ids_path.read_text(encoding="utf-8").split()
         lines = []
+        bad_xml = 0
         for image_id in ids:
             if image_prefix and image_prefix not in image_id:
                 continue
@@ -94,17 +109,21 @@ def main() -> None:
                 image = data / "JPEGImages" / f"{image_id}.png"
             if not ann.exists() or not image.exists():
                 continue
-            tree = ET.parse(ann).getroot()
+            tree = load_xml(ann)
+            if tree is None:
+                bad_xml += 1
+                continue
             calib_name = Path((tree.findtext("calibfile") or "").replace("\\", "/")).name
             calib = data / "Calib" / calib_name
             if not calib.exists():
                 continue
-            line = annotation_line(image, calib, ann)
+            line = annotation_line(image, calib, tree)
             if line:
                 lines.append(line)
         out_path = out / f"{args.out_name}_{split}.txt"
         out_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
-        print(f"{split}: {len(lines)} lines -> {out_path}")
+        note = f", {bad_xml} xml kosong/rusak dilewati" if bad_xml else ""
+        print(f"{split}: {len(lines)} lines -> {out_path}{note}")
 
 
 if __name__ == "__main__":

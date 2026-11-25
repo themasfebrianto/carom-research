@@ -177,24 +177,28 @@ def extract(archive: Path, out_dir: Path, expected_images: int) -> int:
             continue
         log("extract: " + " ".join(cmd))
         res = subprocess.run(cmd, capture_output=True, text=True)
-        n = count_images(out_dir)
-        if n >= floor:
-            log(f"  {cmd[0]}: {n} gambar")
-            return n
+        n_img = count_images(out_dir)
+        n_xml = count_files(out_dir, (".xml",))
+        if n_img >= floor and n_xml >= floor:
+            log(f"  {cmd[0]}: {n_img} gambar, {n_xml} xml")
+            return n_img
         detail = (res.stderr or res.stdout or "").strip()[:300]
-        log(f"  {cmd[0]} tidak memadai: {n}/{expected_images} gambar. {detail}")
+        log(
+            f"  {cmd[0]} tidak memadai: {n_img} gambar / {n_xml} xml "
+            f"(butuh >= {floor}). {detail}"
+        )
     raise SystemExit(
-        f"gagal mengekstrak {archive.name} (butuh >= {floor} gambar). "
+        f"gagal mengekstrak {archive.name} (butuh >= {floor} gambar dan xml). "
         "Coba `apt-get install -y unar` lalu jalankan ulang."
     )
 
 
+def count_files(root: Path, suffixes: tuple[str, ...]) -> int:
+    return sum(1 for p in root.rglob("*") if p.suffix.lower() in suffixes)
+
+
 def count_images(root: Path) -> int:
-    return sum(
-        1
-        for p in root.rglob("*")
-        if p.suffix.lower() in (".jpg", ".jpeg", ".png")
-    )
+    return count_files(root, (".jpg", ".jpeg", ".png"))
 
 
 def find_data2021(root: Path) -> list[Path]:
