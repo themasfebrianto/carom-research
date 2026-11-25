@@ -51,7 +51,7 @@ CELLS = [
         "kalau Drive di-mount. Kalau sesi putus, jalankan ulang sel **Full** —",
         "otomatis resume dari `checkpoint_last.pth`.",
     ),
-    md("## 1. Setup (mount Drive, cek GPU, ambil skrip)"),
+    md("## 1. Setup (mount Drive, cek GPU)"),
     code(
         "# Opsional tapi disarankan: checkpoint selamat kalau sesi putus.",
         "from google.colab import drive",
@@ -59,8 +59,6 @@ CELLS = [
     ),
     code(
         "!nvidia-smi --query-gpu=name,memory.total --format=csv,noheader",
-        "!rm -rf " + CLONE,
-        "!git clone -q --depth 1 " + REPO_URL + " " + CLONE,
         "!python -c \"import torch; print('torch', torch.__version__, 'cuda', torch.cuda.is_available())\"",
     ),
     md(
@@ -68,8 +66,13 @@ CELLS = [
         "",
         "Data A-C (3,4 GB) + 200 gambar + 2 epoch. Tujuannya memastikan",
         "unduh, ekstrak, txt, model, loss, dan checkpoint jalan — bukan hasil.",
+        "",
+        "Sel ini selalu mengambil kode terbaru dari repo, jadi aman dijalankan",
+        "ulang setelah ada perbaikan skrip.",
     ),
     code(
+        "!rm -rf /content/carom",
+        "!git clone -q --depth 1 " + REPO_URL + " /content/carom",
         "!cd " + CLONE + " && python scripts/colab_train_centerloc3d.py --preset smoke",
     ),
     md(
@@ -77,13 +80,16 @@ CELLS = [
         "",
         "Semua arsip (13,5 GB, 14.592 gambar), 50 epoch, batch 8.",
         "",
-        "- Perkiraan di L4: ~5-9 jam untuk 50 epoch (diukur dari smoke).",
+        "- Perkiraan di L4: ~4-6 jam untuk 50 epoch (diukur dari smoke).",
         "- Kalau sesi putus: jalankan ulang sel ini, resume otomatis.",
-        "- Biar sesi berikutnya tidak mengunduh ulang, tambahkan",
-        "  `--cache-tar /content/drive/MyDrive/centerloc3d/svld_data.tar`.",
+        "- `--cache-tar` menyimpan data sebagai satu tar di Drive supaya sesi",
+        "  berikutnya tidak mengunduh 13,5 GB lagi.",
     ),
     code(
-        "!cd " + CLONE + " && python scripts/colab_train_centerloc3d.py --preset full",
+        "!rm -rf /content/carom",
+        "!git clone -q --depth 1 " + REPO_URL + " /content/carom",
+        "!cd " + CLONE + " && python scripts/colab_train_centerloc3d.py --preset full \\",
+        "  --cache-tar /content/drive/MyDrive/centerloc3d/svld_data.tar",
     ),
     md(
         "## 4. Cek progres",

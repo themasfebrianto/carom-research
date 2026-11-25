@@ -269,6 +269,19 @@ def maybe_write_tar(cache: Path, merged: Path) -> None:
         log(f"gagal menyimpan cache: {exc}")
 
 
+def script_rev(here: Path) -> str:
+    """Short git revision of the scripts, so logs show which code ran."""
+    try:
+        res = subprocess.run(
+            ["git", "-C", str(here.parent), "rev-parse", "--short", "HEAD"],
+            capture_output=True, text=True, timeout=10,
+        )
+        rev = res.stdout.strip()
+        return rev or "unknown"
+    except Exception:
+        return "unknown"
+
+
 def main() -> None:
     here = Path(__file__).resolve().parent
     ap = argparse.ArgumentParser("CenterLoc3D on SVLD-3D (Colab)")
@@ -308,6 +321,7 @@ def main() -> None:
     raw = work / "raw"
 
     log(f"preset={args.preset} data={data_mode} epochs={epochs} batch={batch}")
+    log(f"scripts rev={script_rev(here)}")
     log(f"out={out} (drive_mounted={drive_mounted})")
 
     ensure_gpu(args.allow_cpu)
