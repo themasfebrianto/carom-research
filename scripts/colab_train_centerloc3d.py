@@ -94,15 +94,16 @@ def ensure_deps() -> None:
     if missing:
         run([sys.executable, "-m", "pip", "install", "-q", *missing])
 
-    # unrar is needed for the SVLD archives; ignore failures and fall back
-    # to whatever extractor is already present.
+    # RAR5 extractors for the SVLD archives. Installed one by one so a missing
+    # package name cannot cancel the others; every extractor is optional.
     if shutil.which("apt-get"):
-        subprocess.run(
-            "apt-get -qq update >/dev/null 2>&1 && apt-get -qq install -y "
-            "p7zip-full unar >/dev/null 2>&1",
-            shell=True,
-            check=False,
-        )
+        subprocess.run("apt-get -qq update >/dev/null 2>&1", shell=True, check=False)
+        for pkg in ("p7zip-full", "unar", "libarchive-tools", "unrar-free", "unrar"):
+            subprocess.run(
+                f"DEBIAN_FRONTEND=noninteractive apt-get -qq install -y {pkg} >/dev/null 2>&1",
+                shell=True,
+                check=False,
+            )
 
 
 def ensure_repo(repo: Path) -> None:
