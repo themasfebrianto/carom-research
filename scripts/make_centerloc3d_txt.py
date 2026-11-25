@@ -42,6 +42,16 @@ def load_xml(path: Path):
         return None
 
 
+def calib_usable(path: Path, cache: dict[Path, bool]) -> bool:
+    """A 0-byte calib file crashes read_calib_params, so never emit its line."""
+    if path not in cache:
+        try:
+            cache[path] = path.stat().st_size > 100 and ET.parse(path) is not None
+        except (ET.ParseError, OSError):
+            cache[path] = False
+    return cache[path]
+
+
 def annotation_line(image: Path, calib: Path, root) -> str | None:
     parts = [str(image), str(calib)]
     found = 0
@@ -100,6 +110,8 @@ def main() -> None:
         ids = ids_path.read_text(encoding="utf-8").split()
         lines = []
         bad_xml = 0
+        bad_calib = 0
+        calib_cache: dict[Path, bool] = {}
         for image_id in ids:
             if image_prefix and image_prefix not in image_id:
                 continue
@@ -115,14 +127,20 @@ def main() -> None:
                 continue
             calib_name = Path((tree.findtext("calibfile") or "").replace("\\", "/")).name
             calib = data / "Calib" / calib_name
-            if not calib.exists():
+            if not calib_usable(calib, calib_cache):
+                bad_calib += 1
                 continue
             line = annotation_line(image, calib, tree)
             if line:
                 lines.append(line)
         out_path = out / f"{args.out_name}_{split}.txt"
         out_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
-        note = f", {bad_xml} xml kosong/rusak dilewati" if bad_xml else ""
+        notes = []
+        if bad_xml:
+            notes.append(f"{bad_xml} xml kosong/rusak")
+        if bad_calib:
+            notes.append(f"{bad_calib} tanpa calib valid")
+        note = f" ({', '.join(notes)} dilewati)" if notes else ""
         print(f"{split}: {len(lines)} lines -> {out_path}{note}")
 
 

@@ -29,6 +29,7 @@ import subprocess
 import sys
 import tarfile
 import time
+import xml.etree.ElementTree as ET
 import zipfile
 from pathlib import Path
 
@@ -39,7 +40,7 @@ CENTERLOC_REPO = "https://github.com/stjuliet/CenterLoc3D.git"
 # not the right test after the first successful extraction.  Bump the version
 # when the extraction/repair logic changes, so old markers are distrusted.
 MARKER = ".extraction.json"
-MARKER_VERSION = 2
+MARKER_VERSION = 3
 
 # Public SVLD-3D archives on Google Drive (.rar, RAR5). Third value is the
 # number of images the archive should contain, used to verify extraction.
@@ -162,19 +163,19 @@ def download(url_id: str, dest: Path) -> Path:
 
 
 def extract(archive: Path, out_dir: Path, expected_images: int) -> int:
-    """Extract one archive and make sure the annotations are usable.
+    """Extract one archive and make sure annotations and calib are usable.
 
-    The SVLD archives are RAR5.  In practice `unar` on Colab extracts every
-    image but leaves a subset of the XML files empty (0 bytes).  So:
-      1. try each extractor until nearly all images are present;
-      2. if many XMLs are empty, re-extract just the Annotations folder with
-         the other tools (cheap, annotations are small);
-      3. if a tool still leaves empty XMLs, let the next tool overwrite them.
+    The SVLD archives are RAR5.  `unar` on Colab extracts every image but
+    leaves a subset of the small XML files empty (0 bytes) - annotations and,
+    fatally, camera calibration files.  So after the images are in place both
+    XML folders are verified and, if needed, re-extracted with another tool
+    (cheap: they are a few MB out of several GB).
     """
     out_dir.mkdir(parents=True, exist_ok=True)
     if archive.suffix.lower() == ".zip":
         with zipfile.ZipFile(archive) as zf:
             zf.extractall(out_dir)
+        repair_subsets(archive, out_dir)
         return count_images(out_dir)
 
     cmds = [
@@ -184,86 +185,142 @@ def extract(archive: Path, out_dir: Path, expected_images: int) -> int:
         ["unrar", "x", "-o+", "-idq", str(archive), str(out_dir)],
     ]
     floor = int(expected_images * 0.9)
-    xml_ok = 0.95
-
-    n_img = count_images(out_dir)
-    if n_img >= floor and count_xml(out_dir) >= int(n_img * xml_ok):
-        log(f"pakai hasil ekstraksi yang ada: {n_img} gambar")
-        return n_img
-
-    for cmd in cmds:
-        if shutil.which(cmd[0]) is None:
-            continue
-        if count_images(out_dir) < floor:
-            shutil.rmtree(out_dir, ignore_errors=True)
-            out_dir.mkdir(parents=True, exist_ok=True)
-        log("extract: " + " ".join(cmd))
-        res = subprocess.run(cmd, capture_output=True, text=True)
-        n_img = count_images(out_dir)
-        if n_img < floor:
-            detail = (res.stderr or res.stdout or "").strip()[:300]
-            log(f"  {cmd[0]} tidak memadai: {n_img}/{expected_images} gambar. {detail}")
-            continue
-        n_xml = count_xml(out_dir)
-        if n_xml >= int(n_img * xml_ok):
-            log(f"  {cmd[0]}: {n_img} gambar, {n_xml} xml valid")
-            return n_img
-        log(f"  {cmd[0]}: {n_img} gambar, hanya {n_xml} xml valid; perbaiki Annotations")
-        n_xml = reextract_annotations(archive, out_dir)
-        log(f"  setelah perbaikan: {n_xml} xml valid")
-        if n_xml >= int(n_img * xml_ok):
-            return n_img
-        log(f"  {cmd[0]} masih menyisakan xml kosong; coba ekstraktor lain")
 
     n_img = count_images(out_dir)
     if n_img >= floor:
-        log(f"tidak ada ekstraktor yang bersih: {n_img} gambar, xml kosong dilewati")
-        return n_img
-    raise SystemExit(
-        f"gagal mengekstrak {archive.name} (butuh >= {floor} gambar). "
-        "Coba `apt-get install -y unar` lalu jalankan ulang."
+        log(f"pakai hasil ekstraksi yang ada: {n_img} gambar")
+    else:
+        for cmd in cmds:
+            if shutil.which(cmd[0]) is None:
+                continue
+            shutil.rmtree(out_dir, ignore_errors=True)
+            out_dir.mkdir(parents=True, exist_ok=True)
+            log("extract: " + " ".join(cmd))
+            res = subprocess.run(cmd, capture_output=True, text=True)
+            n_img = count_images(out_dir)
+            if n_img >= floor:
+                log(f"  {cmd[0]}: {n_img} gambar")
+                break
+            detail = (res.stderr or res.stdout or "").strip()[:300]
+            log(f"  {cmd[0]} tidak memadai: {n_img}/{expected_images} gambar. {detail}")
+        else:
+            raise SystemExit(
+                f"gagal mengekstrak {archive.name} (butuh >= {floor} gambar). "
+                "Coba `apt-get install -y unar` lalu jalankan ulang."
+            )
+
+    repair_subsets(archive, out_dir)
+    return n_img
+
+
+def repair_subsets(archive: Path, out_dir: Path) -> None:
+    """Re-extract Annotations and Calib if any file is empty or unparsable."""
+    need_ann = annotations_need_repair(out_dir)
+    need_calib = calib_need_repair(out_dir)
+    if not need_ann and not need_calib:
+        n_ann = sum(
+            1
+            for p in out_dir.rglob("*.xml")
+            if p.parent.name == "Annotations" and "_retry" not in p.parts
+        )
+        log(f"  {count_images(out_dir)} gambar, {n_ann} xml valid")
+        return
+    log(
+        f"  xml tidak lengkap (annotations={need_ann}, calib={need_calib}); "
+        "ekstrak ulang subset"
     )
+    if need_ann:
+        n = repair_subset(archive, out_dir, "Annotations", "*Annotations*")
+        log(f"  Annotations: {n} file valid ditulis ulang")
+    if need_calib:
+        n = repair_subset(archive, out_dir, "Calib", "*Calib*")
+        log(f"  Calib: {n} file valid ditulis ulang")
+    if annotations_need_repair(out_dir) or calib_need_repair(out_dir):
+        log("  peringatan: masih ada xml kosong/rusak setelah perbaikan")
 
 
-def reextract_annotations(archive: Path, out_dir: Path) -> int:
-    """Re-extract only the Annotations with every tool and keep the best result.
-
-    The XMLs are written into the real DATA2021/Annotations folder(s) under
-    out_dir, not next to them, so the later merge actually sees them.
-    """
-    dest = out_dir / "_ann_retry"
+def repair_subset(archive: Path, out_dir: Path, folder: str, pattern: str) -> int:
+    """Re-extract one XML folder and copy the valid files into DATA2021."""
+    dest = out_dir / "_retry"
     targets = data_dirs(out_dir) or [out_dir]
-    best = count_xml(out_dir)
     cmds = [
-        ["7z", "x", "-y", f"-o{dest}", str(archive), "-i!*Annotations*"],
-        ["bsdtar", "-xf", str(archive), "-C", str(dest), "--include", "*Annotations*"],
-        ["unrar", "x", "-o+", "-idq", str(archive), "*Annotations*", str(dest) + "/"],
+        ["bsdtar", "-xf", str(archive), "-C", str(dest), "--include", pattern],
+        ["7z", "x", "-y", f"-o{dest}", str(archive), f"-i!{pattern}"],
+        ["unrar", "x", "-o+", "-idq", str(archive), pattern, str(dest) + "/"],
     ]
+    good = 0
     for cmd in cmds:
         if shutil.which(cmd[0]) is None:
             continue
         shutil.rmtree(dest, ignore_errors=True)
         dest.mkdir(parents=True, exist_ok=True)
         res = subprocess.run(cmd, capture_output=True, text=True)
-        found = list(dest.rglob("*.xml"))
+        found = [p for p in dest.rglob("*.xml") if p.parent.name == folder]
         if not found:
             detail = (res.stderr or res.stdout or "").strip()[:200]
-            log(f"  {cmd[0]}: tidak menemukan xml. {detail}")
+            log(f"    {cmd[0]}: tidak menemukan {folder}. {detail}")
             continue
-        good = 0
         for p in found:
-            if p.stat().st_size <= 100:
+            if not ok_xml(p):
                 continue
             for target in targets:
-                ann = target / "Annotations"
-                ann.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(p, ann / p.name)
+                out = target / folder
+                out.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(p, out / p.name)
             good += 1
-        total = count_xml(out_dir)
-        log(f"  {cmd[0]}: {good} xml ditulis ulang, total valid {total}")
-        best = max(best, total)
+        shutil.rmtree(dest, ignore_errors=True)
+        break
     shutil.rmtree(dest, ignore_errors=True)
-    return best
+    return good
+
+
+def ok_xml(path: Path) -> bool:
+    try:
+        if path.stat().st_size <= 100:
+            return False
+        ET.parse(path)
+        return True
+    except (ET.ParseError, OSError):
+        return False
+
+
+def annotations_need_repair(root: Path) -> bool:
+    """True when some image has no usable annotation file."""
+    n_img = count_images(root)
+    n_ok = sum(
+        1
+        for p in root.rglob("*.xml")
+        if p.parent.name == "Annotations" and "_retry" not in p.parts and ok_xml(p)
+    )
+    return n_img > 0 and n_ok < n_img
+
+
+def calib_files(root: Path) -> list[Path]:
+    """Camera calibration XMLs; `_retry` is a scratch folder, not data."""
+    return [
+        p
+        for p in root.rglob("*.xml")
+        if p.parent.name == "Calib" and p.is_file() and "_retry" not in p.parts
+    ]
+
+
+def calib_stats(root: Path) -> tuple[int, int]:
+    """(total, valid) camera calibration files.
+
+    A truncated calib file is fatal: the dataset loader parses it for every
+    image and a 0-byte one crashes training before the first epoch.
+    """
+    paths = calib_files(root)
+    return len(paths), sum(1 for p in paths if ok_xml(p))
+
+
+def bad_calib(root: Path) -> list[Path]:
+    return [p for p in calib_files(root) if not ok_xml(p)]
+
+
+def calib_need_repair(root: Path) -> bool:
+    """True when a camera calibration file is empty or cannot be parsed."""
+    return bool(bad_calib(root))
 
 
 def count_files(root: Path, suffixes: tuple[str, ...]) -> int:
@@ -281,7 +338,7 @@ def count_xml(root: Path, min_bytes: int = 100) -> int:
         for p in root.rglob("*.xml")
         if p.is_file()
         and p.stat().st_size >= min_bytes
-        and "_ann_retry" not in p.parts
+        and "_retry" not in p.parts
     )
 
 
@@ -308,6 +365,16 @@ def data_is_sane(merged: Path, min_ratio: float = 0.95, data_mode: str = "") -> 
         return False
     n_xml = count_xml(merged)
     ratio = n_xml / n_img
+    n_calib, n_calib_ok = calib_stats(merged)
+    if n_calib == 0:
+        log("tidak ada file Calib; loader butuh matriks kamera, data tidak dipakai")
+        return False
+    if n_calib_ok < n_calib:
+        log(
+            f"{n_calib - n_calib_ok} dari {n_calib} file calib kosong/rusak; "
+            "data akan diekstrak ulang"
+        )
+        return False
     marker = merged / MARKER
     if marker.is_file():
         try:
@@ -316,6 +383,7 @@ def data_is_sane(merged: Path, min_ratio: float = 0.95, data_mode: str = "") -> 
             info = {}
         want_img = int(info.get("images", 0) or 0)
         want_xml = int(info.get("xml_valid", 0) or 0)
+        want_calib_ok = int(info.get("calib_ok", 0) or 0)
         version = int(info.get("version", 0) or 0)
         if version != MARKER_VERSION:
             log(f"marker versi lama ({version}); data akan diekstrak ulang")
@@ -327,10 +395,15 @@ def data_is_sane(merged: Path, min_ratio: float = 0.95, data_mode: str = "") -> 
                 f"sedangkan run ini butuh '{data_mode}'; ekstrak ulang"
             )
             return False
-        if want_img > 0 and n_img >= want_img * 0.98 and n_xml >= want_xml * 0.98:
+        if (
+            want_img > 0
+            and n_img >= want_img * 0.98
+            and n_xml >= want_xml * 0.98
+            and n_calib_ok >= want_calib_ok
+        ):
             log(
-                f"data sudah diverifikasi: {n_img} gambar, {n_xml} xml valid "
-                f"({ratio:.1%})"
+                f"data sudah diverifikasi: {n_img} gambar, {n_xml} xml valid, "
+                f"{n_calib_ok}/{n_calib} calib ({ratio:.1%})"
             )
             return True
         log("marker ada tapi isi folder berkurang; data dianggap tidak lengkap")
@@ -342,16 +415,40 @@ def data_is_sane(merged: Path, min_ratio: float = 0.95, data_mode: str = "") -> 
 
 
 def write_marker(merged: Path, data_mode: str = "") -> None:
-    """Record the verified counts so a rerun does not distrust a good dataset."""
+    """Record the verified counts so a rerun does not distrust a good dataset.
+
+    Refuses to bless data that would crash the first training step.
+    """
+    broken = bad_calib(merged)
+    if broken:
+        listing = "\n  ".join(str(p) for p in broken)
+        raise SystemExit(
+            f"{len(broken)} file calib kosong/rusak setelah ekstraksi:\n  {listing}\n"
+            "Training akan crash di read_calib_params (XML tanpa elemen). "
+            "Hapus folder kerja lalu jalankan ulang; kalau tetap gagal, arsipnya "
+            "memang rusak dan perlu diunduh ulang."
+        )
+    n_calib, n_calib_ok = calib_stats(merged)
+    n_img = count_images(merged)
+    if n_img > 0 and n_calib == 0:
+        raise SystemExit(
+            f"{n_img} gambar tanpa satu pun file Calib di {merged}. "
+            "Loader tidak bisa membentuk matriks kamera; arsipnya tidak lengkap."
+        )
     info = {
         "version": MARKER_VERSION,
         "data_mode": data_mode,
-        "images": count_images(merged),
+        "images": n_img,
         "xml_valid": count_xml(merged),
+        "calib_files": n_calib,
+        "calib_ok": n_calib_ok,
         "written": time.strftime("%Y-%m-%dT%H:%M:%S"),
     }
     (merged / MARKER).write_text(json.dumps(info, indent=1), encoding="utf-8")
-    log(f"tandai data terverifikasi: {info['images']} gambar, {info['xml_valid']} xml valid")
+    log(
+        f"tandai data terverifikasi: {info['images']} gambar, "
+        f"{info['xml_valid']} xml valid, {n_calib_ok}/{n_calib} calib"
+    )
 
 
 def find_data2021(root: Path) -> list[Path]:
