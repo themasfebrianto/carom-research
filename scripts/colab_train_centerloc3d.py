@@ -35,8 +35,10 @@ CENTERLOC_REPO = "https://github.com/stjuliet/CenterLoc3D.git"
 
 # Written into the merged dataset once extraction has been verified.  The
 # archive itself contains empty XMLs, so "every image has a non-empty XML" is
-# not the right test after the first successful extraction.
+# not the right test after the first successful extraction.  Bump the version
+# when the extraction/repair logic changes, so old markers are distrusted.
 MARKER = ".extraction.json"
+MARKER_VERSION = 2
 
 # Public SVLD-3D archives on Google Drive (.rar, RAR5). Third value is the
 # number of images the archive should contain, used to verify extraction.
@@ -223,15 +225,19 @@ def extract(archive: Path, out_dir: Path, expected_images: int) -> int:
 
 
 def reextract_annotations(archive: Path, out_dir: Path) -> int:
-    """Re-extract only the Annotations with every tool and keep the best result."""
+    """Re-extract only the Annotations with every tool and keep the best result.
+
+    The XMLs are written into the real DATA2021/Annotations folder(s) under
+    out_dir, not next to them, so the later merge actually sees them.
+    """
     dest = out_dir / "_ann_retry"
+    targets = data_dirs(out_dir) or [out_dir]
     best = count_xml(out_dir)
     cmds = [
         ["7z", "x", "-y", f"-o{dest}", str(archive), "-i!*Annotations*"],
         ["bsdtar", "-xf", str(archive), "-C", str(dest), "--include", "*Annotations*"],
         ["unrar", "x", "-o+", "-idq", str(archive), "*Annotations*", str(dest) + "/"],
     ]
-    target = out_dir / "Annotations"
     for cmd in cmds:
         if shutil.which(cmd[0]) is None:
             continue
@@ -243,12 +249,15 @@ def reextract_annotations(archive: Path, out_dir: Path) -> int:
             detail = (res.stderr or res.stdout or "").strip()[:200]
             log(f"  {cmd[0]}: tidak menemukan xml. {detail}")
             continue
-        target.mkdir(parents=True, exist_ok=True)
         good = 0
         for p in found:
-            if p.stat().st_size > 100:
-                shutil.copy2(p, target / p.name)
-                good += 1
+            if p.stat().st_size <= 100:
+                continue
+            for target in targets:
+                ann = target / "Annotations"
+                ann.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(p, ann / p.name)
+            good += 1
         total = count_xml(out_dir)
         log(f"  {cmd[0]}: {good} xml ditulis ulang, total valid {total}")
         best = max(best, total)
@@ -269,8 +278,16 @@ def count_xml(root: Path, min_bytes: int = 100) -> int:
     return sum(
         1
         for p in root.rglob("*.xml")
-        if p.is_file() and p.stat().st_size >= min_bytes
+        if p.is_file()
+        and p.stat().st_size >= min_bytes
+        and "_ann_retry" not in p.parts
     )
+
+
+def data_dirs(root: Path) -> list[Path]:
+    """Folders that have both JPEGImages and Annotations (DATA2021 layout)."""
+    dirs = {p.parent for p in root.rglob("Annotations") if p.is_dir()}
+    return sorted(d for d in dirs if (d / "JPEGImages").is_dir())
 
 
 def data_is_sane(merged: Path, min_ratio: float = 0.95) -> bool:
@@ -297,6 +314,10 @@ def data_is_sane(merged: Path, min_ratio: float = 0.95) -> bool:
             info = {}
         want_img = int(info.get("images", 0) or 0)
         want_xml = int(info.get("xml_valid", 0) or 0)
+        version = int(info.get("version", 0) or 0)
+        if version != MARKER_VERSION:
+            log(f"marker versi lama ({version}); data akan diekstrak ulang")
+            return False
         if want_img > 0 and n_img >= want_img * 0.98 and n_xml >= want_xml * 0.98:
             log(
                 f"data sudah diverifikasi: {n_img} gambar, {n_xml} xml valid "
@@ -314,6 +335,7 @@ def data_is_sane(merged: Path, min_ratio: float = 0.95) -> bool:
 def write_marker(merged: Path) -> None:
     """Record the verified counts so a rerun does not distrust a good dataset."""
     info = {
+        "version": MARKER_VERSION,
         "images": count_images(merged),
         "xml_valid": count_xml(merged),
         "written": time.strftime("%Y-%m-%dT%H:%M:%S"),

@@ -40,6 +40,18 @@ def num(x) -> float:
     return float(x.detach()) if torch.is_tensor(x) else float(x)
 
 
+def finite(x):
+    """Replace NaN/Inf so one degenerate box cannot poison the whole step.
+
+    The official iou term is built from detached numpy geometry; a single
+    zero-area predicted box produces NaN there and, because it is added to the
+    total loss, turns every gradient into NaN as well.
+    """
+    if torch.is_tensor(x):
+        return torch.nan_to_num(x, nan=0.0, posinf=1e4, neginf=0.0)
+    return x if np.isfinite(x) else 0.0
+
+
 def parse_args():
     ap = argparse.ArgumentParser("CenterLoc3D Colab trainer")
     ap.add_argument("--repo", required=True, help="path to CenterLoc3D")
@@ -147,11 +159,23 @@ def main():
     best = float("inf")
     if args.resume:
         ckpt = torch.load(args.resume, map_location="cpu", weights_only=False)
-        model.load_state_dict(ckpt["state_dict"])
-        optimizer.load_state_dict(ckpt["optimizer"])
-        start_epoch = int(ckpt.get("epoch", 0))
-        best = float(ckpt.get("best", best))
-        print(f"resumed {args.resume} at epoch {start_epoch}, best={best:.4f}")
+        poisoned = [
+            k
+            for k, v in ckpt["state_dict"].items()
+            if torch.is_tensor(v) and not torch.isfinite(v).all()
+        ]
+        if poisoned:
+            print(
+                f"checkpoint {args.resume} berisi NaN/Inf di {len(poisoned)} tensor; "
+                "dilewati dan mulai dari awal",
+                flush=True,
+            )
+        else:
+            model.load_state_dict(ckpt["state_dict"])
+            optimizer.load_state_dict(ckpt["optimizer"])
+            start_epoch = int(ckpt.get("epoch", 0))
+            best = float(ckpt.get("best", best))
+            print(f"resumed {args.resume} at epoch {start_epoch}, best={best:.4f}")
 
     log_path = out / "train_log.csv"
     if not log_path.exists():
@@ -162,6 +186,7 @@ def main():
         model.train(train)
         total = 0.0
         n = 0
+        skipped = 0
         for it, batch in enumerate(dl):
             if args.max_iters and it >= args.max_iters:
                 break
@@ -184,23 +209,33 @@ def main():
                     center_loss = reg_l1_loss(pred_center, centers, masks, index=2)
                     vertex_loss = 0.1 * reg_l1_loss(pred_vertex, vertices, masks, index=16)
                     size_loss = 0.1 * reg_l1_loss(pred_size, sizes, masks, index=3)
-                    reproj_loss = 0.1 * reproject_l1_loss(
-                        pred_vertex, calibs, pred_size, masks, base_points,
-                        16, perspectives, output_shape, input_shape, raw_hs, raw_ws,
+                    reproj_loss = finite(
+                        0.1 * reproject_l1_loss(
+                            pred_vertex, calibs, pred_size, masks, base_points,
+                            16, perspectives, output_shape, input_shape, raw_hs, raw_ws,
+                        )
                     )
-                    iou_loss = reg_iou_loss(
-                        "ciou", pred_vertex, vertices, masks, perspectives,
-                        output_shape, input_shape, raw_hs, raw_ws,
+                    iou_loss = finite(
+                        reg_iou_loss(
+                            "ciou", pred_vertex, vertices, masks, perspectives,
+                            output_shape, input_shape, raw_hs, raw_ws,
+                        )
                     )
                     if iou_loss > 1.0:
                         iou_loss = torch.log(iou_loss)
                     loss = cls_loss + center_loss + vertex_loss + size_loss + reproj_loss + iou_loss
-                if train:
+                bad = not torch.isfinite(loss)
+                if train and not bad:
                     scaler.scale(loss).backward()
                     scaler.unscale_(optimizer)
                     torch.nn.utils.clip_grad_norm_(model.parameters(), 10.0)
                     scaler.step(optimizer)
                     scaler.update()
+            if bad:
+                skipped += 1
+                if skipped <= 5:
+                    print(f"  lewati batch {it}: loss NaN/Inf", flush=True)
+                continue
             total += float(loss.item())
             n += 1
             if it % 20 == 0:
@@ -210,7 +245,9 @@ def main():
                     f"reproj={num(reproj_loss):.3f} iou={num(iou_loss):.3f}",
                     flush=True,
                 )
-        return total / max(n, 1)
+        if skipped:
+            print(f"  {skipped} batch dilewati (loss tidak hingga)", flush=True)
+        return total / max(n, 1), skipped
 
     for epoch in range(start_epoch, args.epochs):
         t0 = time.time()
@@ -218,18 +255,37 @@ def main():
             model.freeze_backbone()
         else:
             model.unfreeze_backbone()
-        train_loss = run_epoch(train_dl, True)
-        val_loss = run_epoch(val_dl, False) if len(val_ds) else float("nan")
-        scheduler.step(val_loss if np.isfinite(val_loss) else train_loss)
+        train_loss, train_skipped = run_epoch(train_dl, True)
+        if len(val_ds):
+            val_loss, val_skipped = run_epoch(val_dl, False)
+        else:
+            val_loss, val_skipped = float("nan"), 0
+        metric = val_loss if np.isfinite(val_loss) else train_loss
+        if np.isfinite(metric):
+            scheduler.step(metric)
         elapsed = time.time() - t0
         lr = optimizer.param_groups[0]["lr"]
         print(
             f"epoch {epoch+1}/{args.epochs} train={train_loss:.4f} "
-            f"val={val_loss:.4f} lr={lr:.2e} {elapsed:.0f}s",
+            f"val={val_loss:.4f} lr={lr:.2e} {elapsed:.0f}s "
+            f"(dilewati {train_skipped}/{val_skipped})",
             flush=True,
         )
         with log_path.open("a", newline="", encoding="utf-8") as fh:
             csv.writer(fh).writerow([epoch + 1, train_loss, val_loss, lr, round(elapsed, 1)])
+
+        if not (np.isfinite(train_loss) and np.isfinite(val_loss)):
+            print(
+                "  checkpoint tidak disimpan: loss tidak hingga (NaN/Inf)",
+                flush=True,
+            )
+            if train_skipped == 0 and val_skipped == 0:
+                # weights are already poisoned; nothing useful can be resumed
+                raise SystemExit(
+                    "training berhenti: loss NaN padahal tidak ada batch yang "
+                    "dilewati. Mulai ulang dengan --resume none."
+                )
+            continue
 
         state = {
             "epoch": epoch + 1,
