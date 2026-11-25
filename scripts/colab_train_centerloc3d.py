@@ -179,16 +179,16 @@ def extract(archive: Path, out_dir: Path, expected_images: int) -> int:
         return count_images(out_dir)
 
     cmds = [
-        ["unar", "-q", "-f", "-o", str(out_dir), str(archive)],
-        ["7z", "x", "-y", f"-o{out_dir}", str(archive)],
         ["bsdtar", "-xf", str(archive), "-C", str(out_dir)],
+        ["7z", "x", "-y", f"-o{out_dir}", str(archive)],
+        ["unar", "-q", "-f", "-o", str(out_dir), str(archive)],
         ["tar", "-xf", str(archive), "-C", str(out_dir)],
         ["unrar", "x", "-o+", "-idq", str(archive), str(out_dir)],
     ]
     floor = int(expected_images * 0.9)
 
     n_img = count_images(out_dir)
-    if n_img >= floor:
+    if n_img >= floor and not broken_images(out_dir):
         log(f"pakai hasil ekstraksi yang ada: {n_img} gambar")
     else:
         for cmd in cmds:
@@ -199,15 +199,20 @@ def extract(archive: Path, out_dir: Path, expected_images: int) -> int:
             log("extract: " + " ".join(cmd))
             res = subprocess.run(cmd, capture_output=True, text=True)
             n_img = count_images(out_dir)
-            if n_img >= floor:
+            bad = broken_images(out_dir) if n_img >= floor else []
+            if n_img >= floor and not bad:
                 log(f"  {cmd[0]}: {n_img} gambar")
                 break
+            if n_img >= floor and bad:
+                log(f"  {cmd[0]}: {n_img} gambar, {len(bad)} terpotong; coba alat lain")
+                continue
             detail = (res.stderr or res.stdout or "").strip()[:300]
             log(f"  {cmd[0]} tidak memadai: {n_img}/{expected_images} gambar. {detail}")
         else:
             raise SystemExit(
-                f"gagal mengekstrak {archive.name} (butuh >= {floor} gambar). "
-                "Coba `apt-get install -y unar` lalu jalankan ulang."
+                f"gagal mengekstrak {archive.name} dengan gambar utuh "
+                f"(butuh >= {floor} gambar). Kalau semua alat menghasilkan gambar "
+                "terpotong, arsipnya memang rusak atau alatnya bermasalah."
             )
 
     repair_subsets(archive, out_dir)
@@ -350,6 +355,43 @@ def data_dirs(root: Path) -> list[Path]:
     return sorted(d for d in dirs if (d / "JPEGImages").is_dir())
 
 
+def image_ok(path: Path) -> bool:
+    """True when the file tail looks complete (PNG IEND / JPEG EOI).
+
+    `unar` on Colab sometimes truncates files.  A truncated XML fails loudly
+    during extraction; a truncated image only fails in the middle of training,
+    after the expensive setup.  Checking the last bytes is cheap and catches
+    the same failure mode.
+    """
+    try:
+        size = path.stat().st_size
+        if size <= 0:
+            return False
+        with path.open("rb") as f:
+            head = f.read(8)
+            f.seek(max(0, size - 32))
+            tail = f.read()
+    except OSError:
+        return False
+    if head.startswith(b"\x89PNG"):
+        return b"IEND" in tail
+    if head.startswith(b"\xff\xd8"):
+        return b"\xff\xd9" in tail
+    return True
+
+
+def broken_images(root: Path) -> list[Path]:
+    """Images whose file tail is missing (truncated by the extractor)."""
+    return [
+        p
+        for p in root.rglob("*")
+        if p.is_file()
+        and p.suffix.lower() in (".jpg", ".jpeg", ".png")
+        and "_retry" not in p.parts
+        and not image_ok(p)
+    ]
+
+
 def data_is_sane(merged: Path, min_ratio: float = 0.95, data_mode: str = "") -> bool:
     """An image without a readable annotation cannot be trained on.
 
@@ -374,6 +416,13 @@ def data_is_sane(merged: Path, min_ratio: float = 0.95, data_mode: str = "") -> 
     if n_calib_ok < n_calib:
         log(
             f"{n_calib - n_calib_ok} dari {n_calib} file calib kosong/rusak; "
+            "data akan diekstrak ulang"
+        )
+        return False
+    bad = broken_images(merged)
+    if bad:
+        log(
+            f"{len(bad)} gambar terpotong (mis. {bad[0].name}); "
             "data akan diekstrak ulang"
         )
         return False
@@ -436,6 +485,15 @@ def write_marker(merged: Path, data_mode: str = "") -> None:
         raise SystemExit(
             f"{n_img} gambar tanpa satu pun file Calib di {merged}. "
             "Loader tidak bisa membentuk matriks kamera; arsipnya tidak lengkap."
+        )
+    broken_img = broken_images(merged)
+    if broken_img:
+        listing = "\n  ".join(str(p) for p in broken_img[:10])
+        more = f"\n  ... dan {len(broken_img) - 10} lainnya" if len(broken_img) > 10 else ""
+        raise SystemExit(
+            f"{len(broken_img)} gambar terpotong setelah ekstraksi:\n  {listing}{more}\n"
+            "Training akan crash di PIL (image file is truncated). "
+            "Ekstrak ulang dengan alat lain; kalau tetap gagal, arsipnya rusak."
         )
     info = {
         "version": MARKER_VERSION,
