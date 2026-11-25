@@ -442,7 +442,7 @@ def main() -> None:
     ap.add_argument("--data-root", default="", help="DATA2021 yang sudah ada; lewati unduh/ekstrak")
     ap.add_argument("--allow-cpu", action="store_true", help="uji lokal tanpa CUDA")
     ap.add_argument("--cache-tar", default="", help="tar data di Drive untuk sesi berikutnya")
-    ap.add_argument("--resume", default="auto", help="auto, none, atau path checkpoint")
+    ap.add_argument("--resume", default=None, help="auto, none, atau path checkpoint")
     ap.add_argument("--skip-data", action="store_true")
     ap.add_argument("--refresh-data", action="store_true", help="hapus dan ekstrak ulang data")
     ap.add_argument("--dry-run", action="store_true")
@@ -458,7 +458,16 @@ def main() -> None:
     )
 
     drive_mounted = Path("/content/drive/MyDrive").is_dir()
-    out = Path(args.out) if args.out else Path(DRIVE_OUT if drive_mounted else "/content/out")
+    out = Path(args.out) if args.out else Path(
+        "/content/out" if args.preset == "smoke"
+        else (DRIVE_OUT if drive_mounted else "/content/out")
+    )
+    run_tag = f"{args.preset}|{data_mode}|b{batch}"
+    resume_arg = args.resume
+    if resume_arg is None:
+        # A smoke checkpoint is a 200-image toy model; it must never leak into
+        # the full run.  Full training keeps resuming across sessions.
+        resume_arg = "none" if args.preset == "smoke" else "auto"
     work = Path(args.work)
     repo = Path(args.repo)
     merged = work / "svld" / "DATA2021"
@@ -466,7 +475,7 @@ def main() -> None:
 
     log(f"preset={args.preset} data={data_mode} epochs={epochs} batch={batch}")
     log(f"scripts rev={script_rev(here)}")
-    log(f"out={out} (drive_mounted={drive_mounted})")
+    log(f"out={out} (drive_mounted={drive_mounted}) resume={resume_arg}")
 
     ensure_gpu(args.allow_cpu)
     ensure_deps()
@@ -511,11 +520,11 @@ def main() -> None:
         val_txt = subsample(val_txt, max(20, max_images // 5), val_txt.with_name(val_txt.stem + "_sub.txt"))
 
     resume = ""
-    if args.resume == "auto":
+    if resume_arg == "auto":
         cand = out / "checkpoint_last.pth"
         resume = str(cand) if cand.exists() else ""
-    elif args.resume != "none":
-        resume = args.resume
+    elif resume_arg != "none":
+        resume = resume_arg
     if resume:
         log(f"resume dari {resume}")
 
@@ -530,6 +539,7 @@ def main() -> None:
         "--lr", str(args.lr),
         "--num-workers", str(args.num_workers),
         "--out", str(out),
+        "--run-tag", run_tag,
         "--amp",
     ]
     if resume:

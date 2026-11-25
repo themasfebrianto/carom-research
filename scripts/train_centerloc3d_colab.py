@@ -65,6 +65,11 @@ def parse_args():
     ap.add_argument("--num-workers", type=int, default=2)
     ap.add_argument("--out", required=True)
     ap.add_argument("--resume", default="")
+    ap.add_argument(
+        "--run-tag",
+        default="",
+        help="identitas run (preset|data|batch); checkpoint dengan tag lain tidak di-resume",
+    )
     ap.add_argument("--amp", action="store_true")
     ap.add_argument("--max-iters", type=int, default=0, help="debug: stop after N train iters")
     ap.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
@@ -159,12 +164,19 @@ def main():
     best = float("inf")
     if args.resume:
         ckpt = torch.load(args.resume, map_location="cpu", weights_only=False)
+        ckpt_tag = str(ckpt.get("run_tag", ""))
         poisoned = [
             k
             for k, v in ckpt["state_dict"].items()
             if torch.is_tensor(v) and not torch.isfinite(v).all()
         ]
-        if poisoned:
+        if args.run_tag and ckpt_tag != args.run_tag:
+            print(
+                f"checkpoint {args.resume} berasal dari run lain "
+                f"({ckpt_tag or 'tanpa tag'}, sekarang {args.run_tag}); mulai dari awal",
+                flush=True,
+            )
+        elif poisoned:
             print(
                 f"checkpoint {args.resume} berisi NaN/Inf di {len(poisoned)} tensor; "
                 "dilewati dan mulai dari awal",
@@ -176,6 +188,15 @@ def main():
             start_epoch = int(ckpt.get("epoch", 0))
             best = float(ckpt.get("best", best))
             print(f"resumed {args.resume} at epoch {start_epoch}, best={best:.4f}")
+
+    if start_epoch >= args.epochs:
+        print(
+            f"checkpoint sudah mencapai epoch {start_epoch} dari {args.epochs} yang "
+            "diminta; tidak ada epoch yang dijalankan. Naikkan --epochs atau pakai "
+            "--resume none untuk mengulang dari awal.",
+            flush=True,
+        )
+        return
 
     log_path = out / "train_log.csv"
     if not log_path.exists():
@@ -292,6 +313,7 @@ def main():
             "state_dict": model.state_dict(),
             "optimizer": optimizer.state_dict(),
             "best": best,
+            "run_tag": args.run_tag,
         }
         torch.save(state, out / "checkpoint_last.pth")
         if np.isfinite(val_loss) and val_loss < best:
