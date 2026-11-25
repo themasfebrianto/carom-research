@@ -43,6 +43,53 @@ def main() -> None:
     else:
         print("  already patched: utils/utils.py")
 
+    # Degenerate boxes (zero height, NaN from a bad projection) used to make
+    # the whole geometry term NaN, so the trainer discarded reproj/iou for the
+    # entire batch.  Sanitise the boxes and keep the ratio finite instead.
+    replace(
+        utils,
+        "def basic_ciou(bbox_p, bbox_g):\n"
+        '    """\n'
+        "    bbox_p: [lt_x, ly_y, br_x, br_y]\n"
+        "    bbox_g: [lt_x, ly_y, br_x, br_y]\n"
+        '    """\n'
+        "    # pred 2d box area\n"
+        "    area_p = abs(bbox_p[2] - bbox_p[0]) * abs(bbox_p[3] - bbox_p[1])\n"
+        "    # gt 2d box area\n"
+        "    area_g = abs(bbox_g[2] - bbox_g[0]) * abs(bbox_g[3] - bbox_g[1])\n"
+        "\n"
+        "    bbox_h_p = bbox_p[3] - bbox_p[1]\n"
+        "    bbox_w_p = bbox_p[2] - bbox_p[0]\n"
+        "    bbox_h_g = bbox_g[3] - bbox_g[1]\n"
+        "    bbox_w_g = bbox_g[2] - bbox_g[0]\n",
+        "def basic_ciou(bbox_p, bbox_g):\n"
+        '    """\n'
+        "    bbox_p: [lt_x, ly_y, br_x, br_y]\n"
+        "    bbox_g: [lt_x, ly_y, br_x, br_y]\n"
+        '    """\n'
+        "    # Degenerate boxes (zero height, NaN from a bad projection) used to\n"
+        "    # make the whole geometry term NaN and the trainer discarded it.\n"
+        "    # Sanitise the inputs and keep the ratio finite instead.\n"
+        "    bbox_p = np.nan_to_num(np.asarray(bbox_p, dtype=np.float32), nan=0.0, posinf=0.0, neginf=0.0)\n"
+        "    bbox_g = np.nan_to_num(np.asarray(bbox_g, dtype=np.float32), nan=0.0, posinf=0.0, neginf=0.0)\n"
+        "    # pred 2d box area\n"
+        "    area_p = abs(bbox_p[2] - bbox_p[0]) * abs(bbox_p[3] - bbox_p[1])\n"
+        "    # gt 2d box area\n"
+        "    area_g = abs(bbox_g[2] - bbox_g[0]) * abs(bbox_g[3] - bbox_g[1])\n"
+        "\n"
+        "    bbox_h_p = bbox_p[3] - bbox_p[1]\n"
+        "    bbox_w_p = bbox_p[2] - bbox_p[0]\n"
+        "    bbox_h_g = bbox_g[3] - bbox_g[1]\n"
+        "    bbox_w_g = bbox_g[2] - bbox_g[0]\n"
+        "    bbox_h_p = bbox_h_p if abs(bbox_h_p) > 1e-6 else 1e-6\n"
+        "    bbox_h_g = bbox_h_g if abs(bbox_h_g) > 1e-6 else 1e-6\n",
+    )
+
+    # A zero-area box makes `union` negative, so the raw ratio explodes to
+    # ~1e8 and the "loss" becomes a huge negative number.  Clamp the final
+    # ratio to the valid range so the term stays a bounded penalty.
+    replace(utils, "    return ciou\n", "    return np.clip(ciou, -1.0, 1.0)\n")
+
     dl = repo / "dataset" / "dataloader.py"
     replace(dl, "box_cls_id = int(box_cls[i])", "box_cls_id = int(box_cls[i].item())")
     replace(
@@ -151,6 +198,18 @@ def main() -> None:
             applied += 1
     loss.write_text(text, encoding="utf-8")
     print(f"  patched utils/loss.py (device + detach + {applied} GPU fixes)")
+
+    # A degenerate projection (zero/NaN vertex) used to poison the whole
+    # reprojection term.  Keep the loss finite by falling back to the predicted
+    # vertex for that one box, so the box is not punished for a broken GT box.
+    replace(
+        loss,
+        "            calc_vertex[y, x] = cal_pred_2dvertex(pers, bp, l, w, h, calib_m)\n",
+        "            calc = cal_pred_2dvertex(pers, bp, l, w, h, calib_m)\n"
+        "            if not np.all(np.isfinite(calc)):\n"
+        "                calc = pred_vertex_np[b, y, x]\n"
+        "            calc_vertex[y, x] = calc\n",
+    )
     print("done")
 
 
