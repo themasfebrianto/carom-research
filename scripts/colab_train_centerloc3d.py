@@ -32,13 +32,14 @@ from pathlib import Path
 
 CENTERLOC_REPO = "https://github.com/stjuliet/CenterLoc3D.git"
 
-# Public SVLD-3D archives on Google Drive (.rar files).
+# Public SVLD-3D archives on Google Drive (.rar, RAR5). Third value is the
+# number of images the archive should contain, used to verify extraction.
 ARCHIVES = {
-    "ac": [("A-C", "1yO9av6qtLxOehT-vRivaX_WX6TT-jIvc")],
+    "ac": [("A-C", "1yO9av6qtLxOehT-vRivaX_WX6TT-jIvc", 7043)],
     "all": [
-        ("A-C", "1yO9av6qtLxOehT-vRivaX_WX6TT-jIvc"),
-        ("D", "13i341cnFtNVlRvVBjSAmUGtxEiHt_Fjz"),
-        ("E", "1Z-lv_NQtBc8EFYJaFapF69H79m2Ce2mO"),
+        ("A-C", "1yO9av6qtLxOehT-vRivaX_WX6TT-jIvc", 7043),
+        ("D", "13i341cnFtNVlRvVBjSAmUGtxEiHt_Fjz", 3848),
+        ("E", "1Z-lv_NQtBc8EFYJaFapF69H79m2Ce2mO", 3701),
     ],
 }
 
@@ -124,14 +125,18 @@ def download(url_id: str, dest: Path) -> Path:
         log(f"sudah terunduh: {dest} ({dest.stat().st_size / 1024**3:.2f} GB)")
         return dest
 
+    tmp = dest.with_name(dest.name + ".part")
     last = None
     for attempt in range(1, 4):
+        tmp.unlink(missing_ok=True)
         try:
             run(
-                [sys.executable, "-m", "gdown", url_id, "-O", str(dest), "--quiet"],
+                [sys.executable, "-m", "gdown", url_id, "-O", str(tmp), "--quiet"],
                 timeout=3600,
             )
-            if dest.exists() and dest.stat().st_size > 0:
+            if tmp.exists() and tmp.stat().st_size > 0:
+                tmp.replace(dest)
+                log(f"terunduh {dest.name}: {dest.stat().st_size / 1024**3:.2f} GB")
                 return dest
         except subprocess.CalledProcessError as exc:
             last = exc
@@ -146,30 +151,48 @@ def download(url_id: str, dest: Path) -> Path:
     )
 
 
-def extract(archive: Path, out_dir: Path) -> None:
+def extract(archive: Path, out_dir: Path, expected_images: int) -> int:
+    """Extract one archive and verify that the image count is plausible.
+
+    The SVLD archives are RAR5; older p7zip builds can fail or extract only
+    part of a RAR5 file without a clear error, so each extractor is tried and
+    the result is counted before it is accepted.
+    """
     out_dir.mkdir(parents=True, exist_ok=True)
     if archive.suffix.lower() == ".zip":
         with zipfile.ZipFile(archive) as zf:
             zf.extractall(out_dir)
-        return
+        return count_images(out_dir)
 
     cmds = [
-        ["7z", "x", "-y", f"-o{out_dir}", str(archive)],
         ["unar", "-q", "-f", "-o", str(out_dir), str(archive)],
+        ["7z", "x", "-y", f"-o{out_dir}", str(archive)],
         ["bsdtar", "-xf", str(archive), "-C", str(out_dir)],
         ["unrar", "x", "-o+", "-idq", str(archive), str(out_dir)],
     ]
+    floor = int(expected_images * 0.9)
     for cmd in cmds:
         if shutil.which(cmd[0]) is None:
             continue
         log("extract: " + " ".join(cmd))
         res = subprocess.run(cmd, capture_output=True, text=True)
-        if res.returncode == 0:
-            return
-        log(f"  {cmd[0]} gagal: {(res.stderr or res.stdout).strip()[:300]}")
+        n = count_images(out_dir)
+        if n >= floor:
+            log(f"  {cmd[0]}: {n} gambar")
+            return n
+        detail = (res.stderr or res.stdout or "").strip()[:300]
+        log(f"  {cmd[0]} tidak memadai: {n}/{expected_images} gambar. {detail}")
     raise SystemExit(
-        f"tidak ada ekstraktor yang berhasil untuk {archive.name}; "
-        "coba `apt-get install -y unar` lalu jalankan ulang."
+        f"gagal mengekstrak {archive.name} (butuh >= {floor} gambar). "
+        "Coba `apt-get install -y unar` lalu jalankan ulang."
+    )
+
+
+def count_images(root: Path) -> int:
+    return sum(
+        1
+        for p in root.rglob("*")
+        if p.suffix.lower() in (".jpg", ".jpeg", ".png")
     )
 
 
@@ -298,10 +321,10 @@ def main() -> None:
             if merged.is_dir() and any((merged / "JPEGImages").glob("*")):
                 log(f"pakai data yang sudah ada: {merged}")
             else:
-                for name, file_id in ARCHIVES[data_mode]:
+                for name, file_id, expected in ARCHIVES[data_mode]:
                     dest = raw / f"SVLD-{name}.rar"
                     download(file_id, dest)
-                    extract(dest, raw / name)
+                    extract(dest, raw / name, expected)
                 merge_archives(raw, merged)
                 if cache:
                     maybe_write_tar(cache, merged)

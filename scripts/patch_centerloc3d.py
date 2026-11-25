@@ -55,18 +55,19 @@ def main() -> None:
     # imported at module level and are old enough to be fragile on Colab.
     fpn = repo / "nets" / "fpn.py"
     text = fpn.read_text(encoding="utf-8")
-    if "from torchsummary import summary" in text:
+    if "except ImportError" in text:
+        print("  already patched: nets/fpn.py")
+    else:
         text = text.replace(
             "from torchsummary import summary",
             "try:\n    from torchsummary import summary\nexcept ImportError:\n    summary = None",
         )
-    if "from torchstat import stat" in text:
         text = text.replace(
             "from torchstat import stat  # calc flops",
             "try:\n    from torchstat import stat  # calc flops\nexcept ImportError:\n    stat = None",
         )
-    fpn.write_text(text, encoding="utf-8")
-    print("  patched nets/fpn.py (optional stats imports)")
+        fpn.write_text(text, encoding="utf-8")
+        print("  patched nets/fpn.py (optional stats imports)")
 
     loss = repo / "utils" / "loss.py"
     text = loss.read_text(encoding="utf-8")
