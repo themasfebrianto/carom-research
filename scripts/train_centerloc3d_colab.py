@@ -35,6 +35,11 @@ MEAN = [0.40789655, 0.44719303, 0.47026116]
 STD = [0.2886383, 0.27408165, 0.27809834]
 
 
+def num(x) -> float:
+    """Log a loss component whether it is a float or a tensor with grad."""
+    return float(x.detach()) if torch.is_tensor(x) else float(x)
+
+
 def parse_args():
     ap = argparse.ArgumentParser("CenterLoc3D Colab trainer")
     ap.add_argument("--repo", required=True, help="path to CenterLoc3D")
@@ -201,8 +206,8 @@ def main():
             if it % 20 == 0:
                 print(
                     f"  it {it}/{len(dl)} loss={total/max(n,1):.4f} "
-                    f"cls={float(cls_loss):.3f} size={float(size_loss):.3f} "
-                    f"reproj={float(reproj_loss):.3f} iou={float(iou_loss):.3f}",
+                    f"cls={num(cls_loss):.3f} size={num(size_loss):.3f} "
+                    f"reproj={num(reproj_loss):.3f} iou={num(iou_loss):.3f}",
                     flush=True,
                 )
         return total / max(n, 1)

@@ -22,6 +22,7 @@ Everything is resumable: rerunning `--preset full` continues from
 from __future__ import annotations
 
 import argparse
+import json
 import shutil
 import subprocess
 import sys
@@ -31,6 +32,11 @@ import zipfile
 from pathlib import Path
 
 CENTERLOC_REPO = "https://github.com/stjuliet/CenterLoc3D.git"
+
+# Written into the merged dataset once extraction has been verified.  The
+# archive itself contains empty XMLs, so "every image has a non-empty XML" is
+# not the right test after the first successful extraction.
+MARKER = ".extraction.json"
 
 # Public SVLD-3D archives on Google Drive (.rar, RAR5). Third value is the
 # number of images the archive should contain, used to verify extraction.
@@ -153,11 +159,14 @@ def download(url_id: str, dest: Path) -> Path:
 
 
 def extract(archive: Path, out_dir: Path, expected_images: int) -> int:
-    """Extract one archive and verify that the image count is plausible.
+    """Extract one archive and make sure the annotations are usable.
 
-    The SVLD archives are RAR5; older p7zip builds can fail or extract only
-    part of a RAR5 file without a clear error, so each extractor is tried and
-    the result is counted before it is accepted.
+    The SVLD archives are RAR5.  In practice `unar` on Colab extracts every
+    image but leaves a subset of the XML files empty (0 bytes).  So:
+      1. try each extractor until nearly all images are present;
+      2. if many XMLs are empty, re-extract just the Annotations folder with
+         the other tools (cheap, annotations are small);
+      3. if a tool still leaves empty XMLs, let the next tool overwrite them.
     """
     out_dir.mkdir(parents=True, exist_ok=True)
     if archive.suffix.lower() == ".zip":
@@ -172,25 +181,79 @@ def extract(archive: Path, out_dir: Path, expected_images: int) -> int:
         ["unrar", "x", "-o+", "-idq", str(archive), str(out_dir)],
     ]
     floor = int(expected_images * 0.9)
+    xml_ok = 0.95
+
+    n_img = count_images(out_dir)
+    if n_img >= floor and count_xml(out_dir) >= int(n_img * xml_ok):
+        log(f"pakai hasil ekstraksi yang ada: {n_img} gambar")
+        return n_img
+
     for cmd in cmds:
         if shutil.which(cmd[0]) is None:
             continue
+        if count_images(out_dir) < floor:
+            shutil.rmtree(out_dir, ignore_errors=True)
+            out_dir.mkdir(parents=True, exist_ok=True)
         log("extract: " + " ".join(cmd))
         res = subprocess.run(cmd, capture_output=True, text=True)
         n_img = count_images(out_dir)
-        n_xml = count_files(out_dir, (".xml",))
-        if n_img >= floor and n_xml >= floor:
-            log(f"  {cmd[0]}: {n_img} gambar, {n_xml} xml")
+        if n_img < floor:
+            detail = (res.stderr or res.stdout or "").strip()[:300]
+            log(f"  {cmd[0]} tidak memadai: {n_img}/{expected_images} gambar. {detail}")
+            continue
+        n_xml = count_xml(out_dir)
+        if n_xml >= int(n_img * xml_ok):
+            log(f"  {cmd[0]}: {n_img} gambar, {n_xml} xml valid")
             return n_img
-        detail = (res.stderr or res.stdout or "").strip()[:300]
-        log(
-            f"  {cmd[0]} tidak memadai: {n_img} gambar / {n_xml} xml "
-            f"(butuh >= {floor}). {detail}"
-        )
+        log(f"  {cmd[0]}: {n_img} gambar, hanya {n_xml} xml valid; perbaiki Annotations")
+        n_xml = reextract_annotations(archive, out_dir)
+        log(f"  setelah perbaikan: {n_xml} xml valid")
+        if n_xml >= int(n_img * xml_ok):
+            return n_img
+        log(f"  {cmd[0]} masih menyisakan xml kosong; coba ekstraktor lain")
+
+    n_img = count_images(out_dir)
+    if n_img >= floor:
+        log(f"tidak ada ekstraktor yang bersih: {n_img} gambar, xml kosong dilewati")
+        return n_img
     raise SystemExit(
-        f"gagal mengekstrak {archive.name} (butuh >= {floor} gambar dan xml). "
+        f"gagal mengekstrak {archive.name} (butuh >= {floor} gambar). "
         "Coba `apt-get install -y unar` lalu jalankan ulang."
     )
+
+
+def reextract_annotations(archive: Path, out_dir: Path) -> int:
+    """Re-extract only the Annotations with every tool and keep the best result."""
+    dest = out_dir / "_ann_retry"
+    best = count_xml(out_dir)
+    cmds = [
+        ["7z", "x", "-y", f"-o{dest}", str(archive), "-i!*Annotations*"],
+        ["bsdtar", "-xf", str(archive), "-C", str(dest), "--include", "*Annotations*"],
+        ["unrar", "x", "-o+", "-idq", str(archive), "*Annotations*", str(dest) + "/"],
+    ]
+    target = out_dir / "Annotations"
+    for cmd in cmds:
+        if shutil.which(cmd[0]) is None:
+            continue
+        shutil.rmtree(dest, ignore_errors=True)
+        dest.mkdir(parents=True, exist_ok=True)
+        res = subprocess.run(cmd, capture_output=True, text=True)
+        found = list(dest.rglob("*.xml"))
+        if not found:
+            detail = (res.stderr or res.stdout or "").strip()[:200]
+            log(f"  {cmd[0]}: tidak menemukan xml. {detail}")
+            continue
+        target.mkdir(parents=True, exist_ok=True)
+        good = 0
+        for p in found:
+            if p.stat().st_size > 100:
+                shutil.copy2(p, target / p.name)
+                good += 1
+        total = count_xml(out_dir)
+        log(f"  {cmd[0]}: {good} xml ditulis ulang, total valid {total}")
+        best = max(best, total)
+    shutil.rmtree(dest, ignore_errors=True)
+    return best
 
 
 def count_files(root: Path, suffixes: tuple[str, ...]) -> int:
@@ -199,6 +262,64 @@ def count_files(root: Path, suffixes: tuple[str, ...]) -> int:
 
 def count_images(root: Path) -> int:
     return count_files(root, (".jpg", ".jpeg", ".png"))
+
+
+def count_xml(root: Path, min_bytes: int = 100) -> int:
+    """Count non-empty XML files; 0-byte entries are the failure mode we see."""
+    return sum(
+        1
+        for p in root.rglob("*.xml")
+        if p.is_file() and p.stat().st_size >= min_bytes
+    )
+
+
+def data_is_sane(merged: Path, min_ratio: float = 0.95) -> bool:
+    """An image without a readable annotation cannot be trained on.
+
+    SVLD ships one XML per image, but some XMLs in the public archives are
+    genuinely empty (0 bytes).  After the first verified extraction a marker
+    records how many images and valid XMLs were obtained, so later runs check
+    that the folder still holds those files instead of demanding a ratio the
+    source cannot reach.
+    """
+    if not merged.is_dir():
+        return False
+    n_img = count_images(merged)
+    if n_img == 0:
+        return False
+    n_xml = count_xml(merged)
+    ratio = n_xml / n_img
+    marker = merged / MARKER
+    if marker.is_file():
+        try:
+            info = json.loads(marker.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            info = {}
+        want_img = int(info.get("images", 0) or 0)
+        want_xml = int(info.get("xml_valid", 0) or 0)
+        if want_img > 0 and n_img >= want_img * 0.98 and n_xml >= want_xml * 0.98:
+            log(
+                f"data sudah diverifikasi: {n_img} gambar, {n_xml} xml valid "
+                f"({ratio:.1%})"
+            )
+            return True
+        log("marker ada tapi isi folder berkurang; data dianggap tidak lengkap")
+        return False
+    if ratio < min_ratio:
+        log(f"data tidak sehat: {n_img} gambar, hanya {n_xml} xml valid ({ratio:.1%})")
+        return False
+    return True
+
+
+def write_marker(merged: Path) -> None:
+    """Record the verified counts so a rerun does not distrust a good dataset."""
+    info = {
+        "images": count_images(merged),
+        "xml_valid": count_xml(merged),
+        "written": time.strftime("%Y-%m-%dT%H:%M:%S"),
+    }
+    (merged / MARKER).write_text(json.dumps(info, indent=1), encoding="utf-8")
+    log(f"tandai data terverifikasi: {info['images']} gambar, {info['xml_valid']} xml valid")
 
 
 def find_data2021(root: Path) -> list[Path]:
@@ -301,6 +422,7 @@ def main() -> None:
     ap.add_argument("--cache-tar", default="", help="tar data di Drive untuk sesi berikutnya")
     ap.add_argument("--resume", default="auto", help="auto, none, atau path checkpoint")
     ap.add_argument("--skip-data", action="store_true")
+    ap.add_argument("--refresh-data", action="store_true", help="hapus dan ekstrak ulang data")
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args()
 
@@ -333,18 +455,29 @@ def main() -> None:
         merged = Path(args.data_root)
         log(f"pakai data lokal: {merged}")
 
+    if args.refresh_data and merged.is_dir():
+        log("--refresh-data: menghapus data hasil ekstrak lama")
+        shutil.rmtree(merged, ignore_errors=True)
+
     if not args.data_root and not args.skip_data and data_mode != "none":
         cache = Path(args.cache_tar) if args.cache_tar else None
-        restored = bool(cache and maybe_restore_tar(cache, merged))
+        restored = bool(cache and maybe_restore_tar(cache, merged) and data_is_sane(merged))
         if not restored:
-            if merged.is_dir() and any((merged / "JPEGImages").glob("*")):
+            if data_is_sane(merged):
                 log(f"pakai data yang sudah ada: {merged}")
             else:
+                if merged.is_dir():
+                    log("data lama tidak lengkap, ekstrak ulang")
+                    shutil.rmtree(merged, ignore_errors=True)
+                if cache and cache.is_file():
+                    log(f"cache {cache} juga tidak lengkap, hapus")
+                    cache.unlink(missing_ok=True)
                 for name, file_id, expected in ARCHIVES[data_mode]:
                     dest = raw / f"SVLD-{name}.rar"
                     download(file_id, dest)
                     extract(dest, raw / name, expected)
                 merge_archives(raw, merged)
+                write_marker(merged)
                 if cache:
                     maybe_write_tar(cache, merged)
             # free disk: archives and per-scene trees are no longer needed

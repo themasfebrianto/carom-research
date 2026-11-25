@@ -81,16 +81,76 @@ def main() -> None:
             "        pred_vertex_np = pred_vertex_new.detach().cpu().numpy()\n"
             "        t_list = np.where(mask[b].cpu() == 1.0)  # all object",
         )
-    text = text.replace(
-        "bbox = np.array([pred_vertex_new[b,y,x,14], pred_vertex_new[b,y,x,15], pred_vertex_new[b,y,x,2], pred_vertex_new[b,y,x,3]], dtype=np.float32)",
-        "bbox = np.array([pred_vertex_np[b,y,x,14], pred_vertex_np[b,y,x,15], pred_vertex_np[b,y,x,2], pred_vertex_np[b,y,x,3]], dtype=np.float32)",
-    )
-    text = text.replace(
-        "bbox = np.array([pred_vertex_new[b,y,x,2], pred_vertex_new[b,y,x,3], pred_vertex_new[b,y,x,14], pred_vertex_new[b,y,x,15]], dtype=np.float32)",
-        "bbox = np.array([pred_vertex_np[b,y,x,2], pred_vertex_np[b,y,x,3], pred_vertex_np[b,y,x,14], pred_vertex_np[b,y,x,15]], dtype=np.float32)",
-    )
+
+    # --- GPU fixes -------------------------------------------------------
+    # The original code builds numpy arrays straight from CUDA tensors, which
+    # only works when the tensors live on the CPU.  Everything below moves the
+    # values to the host first; gradients are unaffected because these terms
+    # are detached in the reference implementation too.
+    gpu_fixes = [
+        (
+            "        calib_m = calib_matrix[b]\n",
+            "        calib_m = calib_matrix[b].detach().cpu().numpy()\n",
+        ),
+        (
+            "            pers = perspective[b, y, x]\n"
+            "            bp = base_point[b, y, x]\n"
+            "            l = pred_box_size[b, 0, y, x]\n"
+            "            w = pred_box_size[b, 1, y, x]\n"
+            "            h = pred_box_size[b, 2, y, x]\n",
+            "            pers = int(perspective[b, y, x].item())\n"
+            "            bp = base_point[b, y, x].detach().cpu().numpy()\n"
+            "            l = float(pred_box_size[b, 0, y, x])\n"
+            "            w = float(pred_box_size[b, 1, y, x])\n"
+            "            h = float(pred_box_size[b, 2, y, x])\n",
+        ),
+        (
+            "        pred_vertex_np = pred_vertex_new.detach().cpu().numpy()\n"
+            "        t_list = np.where(mask[b].cpu() == 1.0)  # all object\n"
+            "        for y, x in zip(t_list[0], t_list[1]):\n"
+            "            pers = perspective[b, y, x]\n"
+            "            if pers == 1:   # right view\n",
+            "        pred_vertex_np = pred_vertex_new.detach().cpu().numpy()\n"
+            "        target_np = target_new.detach().cpu().numpy()\n"
+            "        t_list = np.where(mask[b].cpu() == 1.0)  # all object\n"
+            "        for y, x in zip(t_list[0], t_list[1]):\n"
+            "            pers = int(perspective[b, y, x].item())\n"
+            "            if pers == 1:   # right view\n",
+        ),
+        (
+            "target_new[b,y,x,",
+            "target_np[b,y,x,",
+        ),
+        (
+            "pred_vertex_new[b,y,x,",
+            "pred_vertex_np[b,y,x,",
+        ),
+        (
+            "l = float(pred_box_size[b, 0, y, x])",
+            "l = float(pred_box_size[b, 0, y, x].detach())",
+        ),
+        (
+            "w = float(pred_box_size[b, 1, y, x])",
+            "w = float(pred_box_size[b, 1, y, x].detach())",
+        ),
+        (
+            "h = float(pred_box_size[b, 2, y, x])",
+            "h = float(pred_box_size[b, 2, y, x].detach())",
+        ),
+        (
+            "cdiou = basic_cdiou(pred_vertex_new[b,y,x], target_new[b,y,x], bbox, bbox_gt)",
+            "cdiou = basic_cdiou(pred_vertex_np[b,y,x], target_np[b,y,x], bbox, bbox_gt)",
+        ),
+    ]
+    applied = 0
+    for old, new in gpu_fixes:
+        if new in text or new == old:
+            continue
+        if old in text:
+            text = text.replace(old, new)
+            applied += 1
     loss.write_text(text, encoding="utf-8")
-    print("  patched utils/loss.py (device + detach)")
+    print(f"  patched utils/loss.py (device + detach + {applied} GPU fixes)")
     print("done")
 
 
