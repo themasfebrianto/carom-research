@@ -182,6 +182,7 @@ def extract(archive: Path, out_dir: Path, expected_images: int) -> int:
         ["unar", "-q", "-f", "-o", str(out_dir), str(archive)],
         ["7z", "x", "-y", f"-o{out_dir}", str(archive)],
         ["bsdtar", "-xf", str(archive), "-C", str(out_dir)],
+        ["tar", "-xf", str(archive), "-C", str(out_dir)],
         ["unrar", "x", "-o+", "-idq", str(archive), str(out_dir)],
     ]
     floor = int(expected_images * 0.9)
@@ -245,6 +246,7 @@ def repair_subset(archive: Path, out_dir: Path, folder: str, pattern: str) -> in
     targets = data_dirs(out_dir) or [out_dir]
     cmds = [
         ["bsdtar", "-xf", str(archive), "-C", str(dest), "--include", pattern],
+        ["tar", "-xf", str(archive), "-C", str(dest), "--include", pattern],
         ["7z", "x", "-y", f"-o{dest}", str(archive), f"-i!{pattern}"],
         ["unrar", "x", "-o+", "-idq", str(archive), pattern, str(dest) + "/"],
     ]
