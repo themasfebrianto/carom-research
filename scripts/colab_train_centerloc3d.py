@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -290,14 +291,15 @@ def data_dirs(root: Path) -> list[Path]:
     return sorted(d for d in dirs if (d / "JPEGImages").is_dir())
 
 
-def data_is_sane(merged: Path, min_ratio: float = 0.95) -> bool:
+def data_is_sane(merged: Path, min_ratio: float = 0.95, data_mode: str = "") -> bool:
     """An image without a readable annotation cannot be trained on.
 
     SVLD ships one XML per image, but some XMLs in the public archives are
     genuinely empty (0 bytes).  After the first verified extraction a marker
     records how many images and valid XMLs were obtained, so later runs check
     that the folder still holds those files instead of demanding a ratio the
-    source cannot reach.
+    source cannot reach.  The marker also stores which archives were merged:
+    switching from the smoke subset to `all` must not reuse partial data.
     """
     if not merged.is_dir():
         return False
@@ -318,6 +320,13 @@ def data_is_sane(merged: Path, min_ratio: float = 0.95) -> bool:
         if version != MARKER_VERSION:
             log(f"marker versi lama ({version}); data akan diekstrak ulang")
             return False
+        have_mode = str(info.get("data_mode", ""))
+        if data_mode and have_mode != data_mode:
+            log(
+                f"data berisi arsip '{have_mode or 'tidak diketahui'}', "
+                f"sedangkan run ini butuh '{data_mode}'; ekstrak ulang"
+            )
+            return False
         if want_img > 0 and n_img >= want_img * 0.98 and n_xml >= want_xml * 0.98:
             log(
                 f"data sudah diverifikasi: {n_img} gambar, {n_xml} xml valid "
@@ -332,10 +341,11 @@ def data_is_sane(merged: Path, min_ratio: float = 0.95) -> bool:
     return True
 
 
-def write_marker(merged: Path) -> None:
+def write_marker(merged: Path, data_mode: str = "") -> None:
     """Record the verified counts so a rerun does not distrust a good dataset."""
     info = {
         "version": MARKER_VERSION,
+        "data_mode": data_mode,
         "images": count_images(merged),
         "xml_valid": count_xml(merged),
         "written": time.strftime("%Y-%m-%dT%H:%M:%S"),
@@ -378,7 +388,31 @@ def build_txt(merged: Path, dataset_dir: Path, here: Path, name: str) -> tuple[P
             "--splits", "train,val",
         ]
     )
-    return dataset_dir / f"{name}_train.txt", dataset_dir / f"{name}_val.txt"
+    train = dataset_dir / f"{name}_train.txt"
+    val = dataset_dir / f"{name}_val.txt"
+
+    # SVLD ships val.txt as a subset of train.txt, so training on train.txt
+    # would leak the validation images and make val= meaningless.  Hold them
+    # out explicitly.
+    if train.is_file() and val.is_file():
+        val_ids = {
+            Path(ln.split()[0]).stem
+            for ln in val.read_text(encoding="utf-8").splitlines()
+            if ln.strip()
+        }
+        lines = train.read_text(encoding="utf-8").splitlines()
+        kept = [
+            ln
+            for ln in lines
+            if ln.strip() and Path(ln.split()[0]).stem not in val_ids
+        ]
+        if len(kept) != len(lines):
+            train.write_text("\n".join(kept) + "\n", encoding="utf-8")
+            log(
+                f"train: {len(kept)} baris "
+                f"({len(lines) - len(kept)} gambar val dikeluarkan)"
+            )
+    return train, val
 
 
 def subsample(txt: Path, limit: int, out: Path) -> Path:
@@ -412,6 +446,15 @@ def maybe_write_tar(cache: Path, merged: Path) -> None:
         log(f"gagal menyimpan cache: {exc}")
 
 
+def default_workers() -> int:
+    """DataLoader workers that match the CPUs the container can actually use."""
+    try:
+        cpus = len(os.sched_getaffinity(0))
+    except AttributeError:  # Windows
+        cpus = os.cpu_count() or 2
+    return max(2, min(6, cpus))
+
+
 def script_rev(here: Path) -> str:
     """Short git revision of the scripts, so logs show which code ran."""
     try:
@@ -435,7 +478,7 @@ def main() -> None:
     ap.add_argument("--batch", type=int, default=None)
     ap.add_argument("--freeze-epochs", type=int, default=None)
     ap.add_argument("--lr", type=float, default=1e-4)
-    ap.add_argument("--num-workers", type=int, default=4)
+    ap.add_argument("--num-workers", type=int, default=None)
     ap.add_argument("--repo", default="/content/CenterLoc3D")
     ap.add_argument("--work", default="/content/work")
     ap.add_argument("--out", default="")
@@ -463,6 +506,7 @@ def main() -> None:
         else (DRIVE_OUT if drive_mounted else "/content/out")
     )
     run_tag = f"{args.preset}|{data_mode}|b{batch}"
+    num_workers = args.num_workers if args.num_workers is not None else default_workers()
     resume_arg = args.resume
     if resume_arg is None:
         # A smoke checkpoint is a 200-image toy model; it must never leak into
@@ -492,9 +536,13 @@ def main() -> None:
 
     if not args.data_root and not args.skip_data and data_mode != "none":
         cache = Path(args.cache_tar) if args.cache_tar else None
-        restored = bool(cache and maybe_restore_tar(cache, merged) and data_is_sane(merged))
+        restored = bool(
+            cache
+            and maybe_restore_tar(cache, merged)
+            and data_is_sane(merged, data_mode=data_mode)
+        )
         if not restored:
-            if data_is_sane(merged):
+            if data_is_sane(merged, data_mode=data_mode):
                 log(f"pakai data yang sudah ada: {merged}")
             else:
                 if merged.is_dir():
@@ -508,7 +556,7 @@ def main() -> None:
                     download(file_id, dest)
                     extract(dest, raw / name, expected)
                 merge_archives(raw, merged)
-                write_marker(merged)
+                write_marker(merged, data_mode)
                 if cache:
                     maybe_write_tar(cache, merged)
             # free disk: archives and per-scene trees are no longer needed
@@ -537,7 +585,7 @@ def main() -> None:
         "--freeze-epochs", str(freeze_epochs),
         "--batch", str(batch),
         "--lr", str(args.lr),
-        "--num-workers", str(args.num_workers),
+        "--num-workers", str(num_workers),
         "--out", str(out),
         "--run-tag", run_tag,
         "--amp",
