@@ -1,0 +1,11 @@
+camera,road,file,width,height,dash_rows,dash_lanes,status,f,pitch,yaw,h,rms,note,geocalib_f,geocalib_pitch,geocalib_roll,geocalib_unc_px,geocalib_unc_pct
+Cawang,Interchange Cawang KM 00+400,recording cawang.mp4,1280,720,3,2,pass,1082.58,2.432,0.271,8.876,1.101,"2 lane boundaries, w=3.60; fixed-f RMS 2.168 (median2) vs free 1.101",928.5,1.987,-0.562,212.9,22.9
+BELMERA,KM 25+200 Selatan,belmera_km25_200_2026-08-18.mp4,1280,720,3,1,underdetermined,1101.09,11.803,0.122,8.22,0.32,single dashed line; fixed-f RMS unchanged -> f not identifiable,989.11,11.402,-2.038,281.7,28.5
+BORR,KM 03+400,borr_km03_400_2026-08-18.mp4,1024,768,3,1,underdetermined,1156.45,11.242,6.006,6.297,1.314,single dashed line; fixed-f RMS unchanged -> f not identifiable,1663.67,8.259,-1.134,505.2,30.4
+Pluit,Interchange Pluit KM 24+800,pluit_km24_800_2026-08-10.mp4,1280,720,3,1,failed,3770.87,12.099,-5.722,41.589,16.234,curved road; 1-line fit h=41.6 m/RMS 16.2; 2-line attempt no physical solution,926.63,0.109,-0.396,220.5,23.8
+CIAWI IC,IC Ciawi Selatan KM 48+200,ciawi_ic_selatan_km48_2026-09-08.mp4,640,480,3,1,rejected,2046.89,9.736,-3.796,26.016,1.864,manual points; low RMS but h=26 m implausible,823.51,4.919,0.459,285.9,34.7
+CIAWI KM55,KM 55+050 A,ciawi_km55_050_2026-09-08.mp4,704,576,0,0,failed,,,,,,dashes faint at low bitrate; no valid extraction,,,,,
+Semarang,KM 425+700 A/B (UNIKA),(not copied),640,480,3,1,failed,2948.93,6.361,-1.18,9.923,4.832,curved road; RMS 4.8 px,,,,,
+Priok,Interchange Priok KM 13+200,priok_km13_200_2026-08-07.mp4,1280,720,0,0,failed,,,,,,no dashed lane markings (solid edges only),,,,,
+BORR 00+100,BORR KM 00+100,borr_km00_100_2026-08-18.mp4,640,480,3,1,failed,3642.65,11.496,-8.266,18.506,19.555,merged/split dashes; inconsistent rows,,,,,
+BORR 00+900,BORR KM 00+900,borr_km00_900_2026-08-21.mp4,640,480,0,0,failed,,,,,,only 2 distinct dashes after merge; insufficient,,,,,

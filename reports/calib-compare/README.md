@@ -196,3 +196,20 @@ node scripts\calib_compare\fit_compare.mjs
 ## 8. Kesimpulan satu paragraf
 
 Dengan anchor `w = 3,60 m` yang sama, kalibrasi Cawang dari 18 tepi dash tetap yang paling konsisten (RMS 1,101 px). GeoCalib memberi `f` 9–13% terlalu rendah dan pitch yang tidak cocok dengan geometri dash; multi-frame shared-intrinsics tidak memperbaikinya. AnyCalib lebih dekat, tetapi hasilnya bergantung frame: +1,6% pada frame TEMA (RMS 1,215) dan +9–12% pada frame lain. VP `vpfit` hanya selisih 0,21°/0,34° dari solusi dash, cukup untuk inisialisasi tetapi bukan pengganti fitting. Untuk carom, **dash fit + anchor `w` tetap menjadi kalibrasi utama**, sedangkan GeoCalib/AnyCalib dipakai sebagai **pemeriksaan independen dengan gerbang**, bukan sebagai sumber tunggal.
+
+---
+
+## 9. Replikasi frame baru (26 November 2026)
+
+Dua median temporal lokal baru dari `recording cawang.mp4` (window 325–374 s dan 475–524 s) mengonfirmasi pola lama. Detail: [`newframe-2026-11-26.md`](newframe-2026-11-26.md).
+
+| Frame | f dash | f GeoCalib | Δf | RMS GeoCalib+VP | RMS VP-only |
+|---|---:|---:|---:|---:|---:|
+| t350 | 1082,43 | 928,50 | −14,22% | 4,674 px | 1,323 px |
+| t500 | 1082,03 | 944,10 | −12,75% | 4,285 px | 1,374 px |
+
+- Dash fit baru tetap `1,13–1,17 px`, cocok dengan baseline `1,101 px`.
+- GeoCalib f tetap 12,8–14,2% terlalu rendah; pitch 0,38–0,49° terlalu kecil.
+- VP dengan f dash: Δpitch `+0,16°`, Δyaw `+0,31–0,32°`, RMS `1,32–1,37 px`.
+- VP lokal t500 gagal (pitch `1,693°`, RMS `3,041 px`); gunakan VP median temporal/global, bukan satu frame.
+- **Kesimpulan tidak berubah:** f dari dash/anchor → VP untuk pitch/yaw; GeoCalib hanya roll/sanity, bukan sumber f.

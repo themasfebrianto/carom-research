@@ -31,6 +31,7 @@ Salinan kurasi dari folder kerja `out/`. Folder `out/` tetap di-`.gitignore` kar
 | `learnpinhole-video/` | Uji combo pada video tes LearnPinhole (480×360) |
 | `geocalib-anycalib/` | Pros/cons GeoCalib vs AnyCalib + persiapan I24-3D |
 | `DATASET-KALIBRASI.md` | Perbandingan SVLD-3D, I24-3D, I24V, CUTC, RoScenes; parameter dan batasannya |
+| `cctv-dashfit-screening-2026-11-26.md` | Screening dash fit di 5+ CCTV; hanya Cawang yang identifiabel; GeoCalib tidak konsisten |
 
 ### `i24/`
 

@@ -1,0 +1,5 @@
+# Video sumber dan frame turunan tidak masuk git.
+# Ringkasan screening (screening_5cctv.csv) tetap dipertahankan.
+*.mp4
+frames/
+thumbs/
