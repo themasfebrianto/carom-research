@@ -24,6 +24,10 @@ out/
 I24-3D/
 SVLD-3D-TRAINVAL-*/
 
+# Bobot model (ratusan MB) — ambil dari Drive, jangan masuk git
+*.pth
+*.pt
+
 # Sistem
 Thumbs.db
 desktop.ini
