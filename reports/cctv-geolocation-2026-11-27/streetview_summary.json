@@ -1,0 +1,10 @@
+{
+  "n_cameras": 26,
+  "coverage_yes": 26,
+  "coverage_listing_only": 0,
+  "coverage_none": 0,
+  "coverage_error": 0,
+  "radius_m": 300,
+  "usable_m_median": 2.1,
+  "usable_m_max": 6.5
+}

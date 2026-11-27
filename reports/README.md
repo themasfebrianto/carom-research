@@ -6,6 +6,8 @@ Salinan kurasi dari folder kerja `out/`. Folder `out/` tetap di-`.gitignore` kar
 - HEAD saat dikumpulkan: `a29c5dd` (plus perubahan lokal anchor container Cawang)
 - Format: UTF-8; tidak ada citra, video, bobot model, atau dataset
 - Jumlah: 102 berkas
+- Tambahan 26 November 2026: laporan fusi `f` GeoCalib+AnyCalib untuk Cawang dan untuk GT SVLD, beserta tabel ringkasannya
+- Tambahan 27 November 2026: laporan geolokasi CCTV Bina Marga + cakupan KartaView, dan laporan dash + garis solid untuk memutus degenerasi `f`
 
 ## Indeks
 
@@ -21,17 +23,19 @@ Salinan kurasi dari folder kerja `out/`. Folder `out/` tetap di-`.gitignore` kar
 | `svld-geocalib/` | **GeoCalib vs SVLD GT**: 100 citra, 5 scene; f dan pitch; 20/100 lulus; multi 1/5 |
 | `svld-vp/` | **VP jalan vs SVLD GT**: 95/100 (f GT), median per scene 5/5; lebar lajur 2,7–3,56 m |
 | `svld-vehicle-anchor/` | **Kendaraan well-known sebagai anchor**: bus Higer 12,6 vs kelas 12 m; anotasi SVLD sirkular |
-| `svld-calib-fusion/` | **AnyCalib + fusion f + lane fit**: AnyCalib 6/100; VP+Any 34/100; lane fit 0/45 |
+| `svld-calib-fusion/` | **AnyCalib + fusion f + lane fit**: AnyCalib 6/100; VP+Any 34/100; lane fit 0/45; fusi buta 17/100 vs GeoCalib 20/100, anchor per kamera 4,28% |
 | `svld-vehicle-vp/` | **PerspectiveFields + vehicle VP + 3D box PnP**: PF gagal 4/5 scene; deep_vp dicek; 3D box GT f 0,00-0,21% |
 | `3d-detector-survey/` | **Survey 3D detector**: CenterLoc3D (SVLD, no weights), BEVHeight++/CoBEV (pretrained roadside), Pro3D, MonoDGP, 3D-MOOD |
 | `keypoint/` | Detectability keypoint dan mask-based fitting pada SVLD |
 | `timepass/` | Side-view Cawang dan fitting kontainer |
 | `cawang-container-anchor/` | **Anchor fisik Cawang**: 20 ft TEMA −0,2%; 40 ft SINKOR ambigu 40/45 ft |
-| `calib-compare/` | GeoCalib vs AnyCalib vs VP vs Cawang dengan anchor `w=3,60 m` |
+| `calib-compare/` | GeoCalib vs AnyCalib vs VP vs Cawang dengan anchor `w=3,60 m`; termasuk fusi `f` GeoCalib+AnyCalib |
 | `learnpinhole-video/` | Uji combo pada video tes LearnPinhole (480×360) |
 | `geocalib-anycalib/` | Pros/cons GeoCalib vs AnyCalib + persiapan I24-3D |
 | `DATASET-KALIBRASI.md` | Perbandingan SVLD-3D, I24-3D, I24V, CUTC, RoScenes; parameter dan batasannya |
 | `cctv-dashfit-screening-2026-11-26.md` | Screening dash fit di 5+ CCTV; hanya Cawang yang identifiabel; GeoCalib tidak konsisten |
+| `cctv-geolocation-2026-11-27/` | **Geolokasi CCTV Bina Marga + KartaView**: 258 kamera, 26 Dalam Kota; semua punya citra 2020; matching Cawang 2023 lemah (~25 SIFT/12 LoFTR) |
+| `cctv-solid-line-2026-11-27/` | **Dash + garis solid**: BELMERA `f=811,6` (w=3,6 m); fixed-f RMS 1,674 vs 0,320; BORR melengkung, tidak valid |
 
 ### `i24/`
 
@@ -135,8 +139,12 @@ Hasil pokok: `veh_size` SVLD preset; bus Higer kelas 12 m diberi 12,6 × 2,75 ×
 | `lane_fit_summary.csv` | Lane fit: 0/45 OK; RMS dan Δf per scene |
 | `vertical_vp_summary.csv` | Vertical VP otomatis: 0cam 2/20; 1cam 18/20 tapi 4/18 lulus |
 | `globustvp_summary.csv` | GlobustVP: 0cam 2/3, 1cam 3/3, tapi vertikal 24–35° dan 0 inlier |
+| `fusion-gt-2026-11-26.md` | **Fusi f vs GT SVLD**: 50/50 17/100 vs GeoCalib 20/100; korelasi galat 0,93; anchor per kamera 4,28% |
+| `fusion_gt_methods.csv` | Ringkasan metode fusi terhadap GT |
+| `fusion_gt_scenes.csv` | Ringkasan fusi per scene |
+| `fusion_gt_anchor.csv` | Monte Carlo anchor skala per kamera |
 
-Hasil pokok: AnyCalib **6/100** (median 18,2%), GeoCalib 20/100; VP+Any **34/100**, VP+Geo 47/100, VP+GT 95/100. Fusion tidak membantu. Lane fit identifiabel di sintetis, tetapi **0/45** nyata karena lane extraction. Vertical VP otomatis belum layak (0cam 2/20; 1cam 4/18). GlobustVP tidak turnkey (vertikal 24–35°, 0 inlier).
+Hasil pokok: AnyCalib **6/100** (median 18,2%), GeoCalib 20/100; VP+Any **34/100**, VP+Geo 47/100, VP+GT 95/100. **Fusi buta 50/50 17/100**, MAE 19,53% vs GeoCalib 19,35%: kedua model bias ke arah yang sama (rasio 0,807/0,830, korelasi galat 0,929). Setelah skala per kamera di-anchor dengan satu frame ber-`f` diketahui, ensemble memberi MAE **4,28%** dan **71/95** lulus sebagai ukuran **stabilitas relatif** (3/5 kamera hampir sempurna; `0cam` dan `session6_right` tetap gagal); `f` anchor tetap jawabannya. Lane fit identifiabel di sintetis, tetapi **0/45** nyata karena lane extraction. Vertical VP otomatis belum layak (0cam 2/20; 1cam 4/18). GlobustVP tidak turnkey (vertikal 24–35°, 0 inlier).
 
 ### `keypoint/`
 
@@ -183,8 +191,12 @@ Hasil pokok: 20 ft TEMA memvalidasi skala Cawang (3,6 m) dalam ~0,2%; 40 ft SINK
 | `fits.json` | Hasil fitting lengkap 18 tepi dash, invarian, dan parameter |
 | `geocalib_*.json` | Keluaran GeoCalib single/multi-frame, termasuk varian distorted |
 | `anycalib_*.json` | Keluaran AnyCalib `simple_pinhole`, `pinhole`, `radial:1`, dan varian model |
+| `fusion-2026-11-26.md` | **Fusi f GeoCalib + AnyCalib**: 8 median temporal Cawang, 50/50 vs bobot terkalibrasi, LOO, varian model |
+| `fusion_frames.csv` | Tabel per frame: f GeoCalib, AnyCalib, rata-rata, galat |
+| `fusion_summary.csv` | Ringkasan metode fusi (bias, MAE, RMSE, maks, lulus 5%) |
+| `fusion_distorted_summary.csv` | Ringkasan varian GeoCalib distorted |
 
-Hasil pokok: Cawang dash fit tetap paling konsisten (RMS 1,101 px); GeoCalib `f` 9–13% terlalu rendah; AnyCalib +1,6% pada frame TEMA tetapi +9–12% pada frame lain; VP-only cukup untuk inisialisasi, bukan pengganti fitting.
+Hasil pokok: Cawang dash fit tetap paling konsisten (RMS 1,101 px); GeoCalib `f` 9–13% terlalu rendah; AnyCalib +1,6% pada frame TEMA tetapi +9–12% pada frame lain; VP-only cukup untuk inisialisasi, bukan pengganti fitting. **Fusi 50/50 GeoCalib+AnyCalib** pada 8 frame memberi MAE 1,58%, maks 3,92%, 8/8 lulus 5% — karena bias kedua model berlawanan; ini spesifik Cawang, bukan sifat umum.
 
 ### `learnpinhole-video/`
 
@@ -205,6 +217,33 @@ Hasil pokok: GeoCalib multi `f=501,80` cocok dengan baseline `≈502`; VP pitch/
 | `README.md` | Pros/cons GeoCalib vs AnyCalib, alasan VP + anchor tetap wajib, dan persiapan test I24-3D |
 
 Ringkas: GeoCalib/AnyCalib hanya estimator intrinsik/pose awal; yaw tetap dari VP dan skala tetap dari anchor. I24-3D cukup dimulai dari `scene1_hg.json` + satu video kamera, bukan 50 GB.
+
+### `cctv-geolocation-2026-11-27/`
+
+| Berkas | Isi |
+|---|---|
+| `README.md` | Laporan lengkap: metode KM + OSM, cakupan KartaView, matching SIFT/LoFTR, batasan |
+| `dalam_kota_cameras.csv` | 26 kamera Cawang–Pluit: KM, arah, koordinat, status, offset |
+| `streetview_coverage.csv` | 26 baris cakupan KartaView: jarak, tanggal, proyeksi, ID |
+| `geolocate_summary.json` | Ringkasan 258 kamera dan per-ruas |
+| `streetview_summary.json` | Ringkasan cakupan 26 kamera |
+
+Hasil pokok: 258 kamera, 222 berkoordinat, 56 interpolasi KM, 20 clamped. Dalam Kota: 26 kamera, 21 `provisional_stationing`, 5 `interpolated_km`; offset existing vs centerline OSM median 21,8 m, maks 133,4 m. KartaView 26/26 usable, median 2,1 m, maks 6,5 m, semua 2020 `PLANE`. Panorama Cawang 2023 berjarak 210 m; SIFT ~25 inlier, LoFTR ~12. **Street view tidak cukup untuk `f`/pose.** Angka 115/158 inlier sebelumnya tidak valid karena thumbnail perspektif diperlakukan sebagai equirect.
+
+### `cctv-solid-line-2026-11-27/`
+
+| Berkas | Isi |
+|---|---|
+| `README.md` | Laporan lengkap: model dash + solid, fixed-f RMS, scan `f`, sensitivitas, BORR |
+| `solid_fit_cases.csv` | 14 kasus: dash-only, solid, sweep `w`, sweep period, near/far, wrong side, BORR |
+| `belmera_dash_fit.csv/.json` | Baseline dash-only BELMERA |
+| `belmera_solid_fit.csv/.json` | Fit dash + garis kuning median, `w=3,6 m`, period 13 m |
+| `belmera_solid_fit_scan.csv` | Scan `f` 700–950 |
+| `belmera_solid_yellow.json` | 20 titik garis kuning median |
+| `borr_solid_fit.csv/.json` | Fit BORR (kontrol negatif) |
+| `borr_solid_fit_scan.csv` | Scan `f` BORR |
+
+Hasil pokok: dash-only BELMERA `f=1101,09`, RMS 0,320, **degenerate** (fixed `f=989,11` tetap 0,320). Dash + solid: `f=811,55`, pitch 15,551°, yaw −0,106°, `h=10,438 m`, RMS 0,439; fixed `f=989,11` → RMS 1,674; fixed `f=1101,09` → RMS 2,469. Scan minimum di ~810. Sensitivitas `w`: 3,0→985,3; 3,3→890,8; 3,6→811,6; 3,9→744,1. Near vs far 809,3 vs 819,0. BORR melengkung: `f=987,16`, fixed `f=1663,67` RMS 3,500; tidak valid untuk model garis lurus.
 
 ## Cara mereproduksi
 

@@ -1,0 +1,156 @@
+{
+  "n_cameras": 258,
+  "n_with_coordinate": 222,
+  "n_with_km": 206,
+  "n_interpolated": 56,
+  "n_existing": 166,
+  "n_no_km": 52,
+  "n_no_geometry": 0,
+  "n_clamped": 20,
+  "by_highway": {
+    "6-tol-dalam-kota-kelapa-gading-pulo-gebang": {
+      "n": 9,
+      "n_with_coordinate": 8,
+      "n_interpolated": 1,
+      "n_existing": 7,
+      "n_no_km": 1,
+      "offset_median_m": 0.0,
+      "offset_max_m": 0.0
+    },
+    "akses-tanjung-priok": {
+      "n": 31,
+      "n_with_coordinate": 25,
+      "n_interpolated": 1,
+      "n_existing": 24,
+      "n_no_km": 6,
+      "offset_median_m": 0.0,
+      "offset_max_m": 0.0
+    },
+    "bekasi-cawang-kampung-melayu": {
+      "n": 15,
+      "n_with_coordinate": 11,
+      "n_interpolated": 0,
+      "n_existing": 11,
+      "n_no_km": 10,
+      "offset_median_m": 0.0,
+      "offset_max_m": 0.0
+    },
+    "cawang-tj-priok-ancol-timur-jembatan-tigapluit": {
+      "n": 3,
+      "n_with_coordinate": 3,
+      "n_interpolated": 3,
+      "n_existing": 0,
+      "n_no_km": 0,
+      "offset_median_m": null,
+      "offset_max_m": null
+    },
+    "dalam-kota": {
+      "n": 26,
+      "n_with_coordinate": 26,
+      "n_interpolated": 5,
+      "n_existing": 21,
+      "n_no_km": 0,
+      "offset_median_m": 0.0,
+      "offset_max_m": 0.0
+    },
+    "depok-antasari": {
+      "n": 3,
+      "n_with_coordinate": 3,
+      "n_interpolated": 0,
+      "n_existing": 3,
+      "n_no_km": 0,
+      "offset_median_m": 0.0,
+      "offset_max_m": 0.0
+    },
+    "jakarta-bogor-ciawi": {
+      "n": 29,
+      "n_with_coordinate": 28,
+      "n_interpolated": 9,
+      "n_existing": 19,
+      "n_no_km": 1,
+      "offset_median_m": 0.0,
+      "offset_max_m": 0.0
+    },
+    "jakarta-tangerang": {
+      "n": 15,
+      "n_with_coordinate": 13,
+      "n_interpolated": 3,
+      "n_existing": 10,
+      "n_no_km": 2,
+      "offset_median_m": 0.0,
+      "offset_max_m": 0.0
+    },
+    "jorr-2-kunciran-cengkareng": {
+      "n": 4,
+      "n_with_coordinate": 4,
+      "n_interpolated": 0,
+      "n_existing": 4,
+      "n_no_km": 2,
+      "offset_median_m": 0.0,
+      "offset_max_m": 0.0
+    },
+    "jorr-2-serpong-cinere": {
+      "n": 3,
+      "n_with_coordinate": 2,
+      "n_interpolated": 2,
+      "n_existing": 0,
+      "n_no_km": 1,
+      "offset_median_m": null,
+      "offset_max_m": null
+    },
+    "jorr-2-serpong-kunciran": {
+      "n": 8,
+      "n_with_coordinate": 8,
+      "n_interpolated": 8,
+      "n_existing": 0,
+      "n_no_km": 0,
+      "offset_median_m": null,
+      "offset_max_m": null
+    },
+    "jorr-e-bambu-apus-rorotan": {
+      "n": 35,
+      "n_with_coordinate": 35,
+      "n_interpolated": 12,
+      "n_existing": 23,
+      "n_no_km": 0,
+      "offset_median_m": 0.0,
+      "offset_max_m": 0.0
+    },
+    "jorr-s": {
+      "n": 46,
+      "n_with_coordinate": 35,
+      "n_interpolated": 0,
+      "n_existing": 35,
+      "n_no_km": 19,
+      "offset_median_m": 0.0,
+      "offset_max_m": 0.0
+    },
+    "jorr-w1": {
+      "n": 7,
+      "n_with_coordinate": 7,
+      "n_interpolated": 0,
+      "n_existing": 7,
+      "n_no_km": 0,
+      "offset_median_m": 0.0,
+      "offset_max_m": 0.0
+    },
+    "jorr-w2s-pondok-ranji-ulujami-pondok-pinang": {
+      "n": 13,
+      "n_with_coordinate": 7,
+      "n_interpolated": 5,
+      "n_existing": 2,
+      "n_no_km": 6,
+      "offset_median_m": 0.0,
+      "offset_max_m": 0.0
+    },
+    "jorr-w2u-ulujami-kembangan": {
+      "n": 11,
+      "n_with_coordinate": 7,
+      "n_interpolated": 7,
+      "n_existing": 0,
+      "n_no_km": 4,
+      "offset_median_m": null,
+      "offset_max_m": null
+    }
+  }
+}

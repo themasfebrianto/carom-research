@@ -213,3 +213,19 @@ Dua median temporal lokal baru dari `recording cawang.mp4` (window 325–374 s d
 - VP dengan f dash: Δpitch `+0,16°`, Δyaw `+0,31–0,32°`, RMS `1,32–1,37 px`.
 - VP lokal t500 gagal (pitch `1,693°`, RMS `3,041 px`); gunakan VP median temporal/global, bukan satu frame.
 - **Kesimpulan tidak berubah:** f dari dash/anchor → VP untuk pitch/yaw; GeoCalib hanya roll/sanity, bukan sumber f.
+
+---
+
+## 10. Fusi `f` GeoCalib + AnyCalib (26 November 2026)
+
+Uji terpisah: delapan median temporal Cawang (7 lokal + `median2`), model default, referensi dash fit `f=1082,35 px`. Detail: [`fusion-2026-11-26.md`](fusion-2026-11-26.md).
+
+| Metode | Bias | MAE | Maks | Lulus <5% |
+|---|---:|---:|---:|---:|
+| GeoCalib | −13,09% | 13,09% | 15,57% | 0/8 |
+| AnyCalib | +11,38% | 11,38% | 14,84% | 0/8 |
+| **Rata-rata 50/50** | **−0,85%** | **1,58%** | **3,92%** | **8/8** |
+| Bobot 0,47 Geo / 0,53 Any (LOO) | −0,10% | 1,80% | 3,61% | 8/8 |
+| Median Geo + median Any (agregat) | −0,81% | 0,81% | 0,81% | 1/1 |
+
+**Bacaan:** pada Cawang, bias GeoCalib dan AnyCalib hampir sama besar dan berlawanan arah, sehingga rata-rata 50/50 memberi `f` dalam 1,6% MAE — jauh lebih baik daripada masing-masing model. Bobot optimal 0,470/0,530 dan koreksi skala 1,006 menunjukkan ini bukan tuning. Namun ini **spesifik Cawang**: di SVLD fusi yang sama hanya 17/100 (GeoCalib 20/100). Jangan generalisasi 50/50 tanpa kalibrasi bobot per kamera. Untuk kalibrasi metrik penuh, `f` hasil fusi tetap harus dipasangkan dengan VP + anchor.

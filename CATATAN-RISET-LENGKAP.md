@@ -23,6 +23,10 @@ Dokumen ini adalah **ringkasan master**. Detail ada di berkas yang ditautkan di 
 | GeoCalib | **tidak reliabel di SVLD** | 1/5 scene; 20/100 citra; multi 1/5 |
 | VP jalan | **kuat jika f benar** | 95/100 (f GT), 47/100 (f GeoCalib); yaw tersedia |
 | AnyCalib | **tidak membantu f** | 6/100; median 18,2% |
+| Fusi `f` Geo+Any (SVLD GT) | **gagal buta; berguna setelah anchor** | 17/100 vs GeoCalib 20/100; korelasi galat 0,93; anchor 1 frame/kamera → MAE 4,28%, 71/95 |
+| Geolokasi CCTV Bina Marga | **provisional, bukan survei** | 258 kamera; 222 koordinat; Dalam Kota 26; offset vs OSM median 21,8 m, maks 133,4 m |
+| Cakupan street view KartaView | **cakupan baik, matching gagal** | 26/26 usable 2020 `PLANE`; panorama Cawang 2023 210 m; ~25 SIFT/12 LoFTR |
+| Dash + garis solid | **menjanjikan, bersyarat** | BELMERA `f=811,6` (w=3,6); fixed-f RMS 1,674 vs 0,320; `w` dan standar dash dominan |
 | Lane fit f | **belum berhasil** | 0/45; lane extraction |
 | Vertical VP otomatis | **belum layak** | 0cam 2/20; 1cam 4/18 |
 | GlobustVP | **tidak turnkey** | vertikal 24–35°, 0 inlier |
@@ -116,7 +120,8 @@ Empat set parameter (A–D) memfit citra hampir sama; perbedaan proyeksi maksimu
 - Cawang 720p (median2): f=943,3 px, pitch 1,995°; multi-frame shared f=969,6. Terhadap dash fit (f=1082,6; RMS 1,097 px), GeoCalib 9–13% terlalu rendah; RMS fixed-pose 3,1–4,4 px. Varian distorted+radial f=890,3. **Bukan pengganti f atau pitch dash.**
 - AnyCalib (Cawang): f bergantung frame, 1100–1207 px; frame TEMA 1100 px (+1,6%, RMS 1,215 px), median2 1183 px (+9,3%). Berguna sebagai cek independen per frame, bukan kalibrasi tunggal. Detail: `reports/calib-compare/README.md`.
 - **VP jalan** 100 citra: dengan `f` GT **95/100** lulus pitch/yaw <2° (median 0,20°/0,05°); dengan `f` GeoCalib **47/100** (median 2,46°/1,12°). Median VP per scene: **5/5** dengan f GT (maks 0,43°/0,14°), 2/5 dengan f GeoCalib. VP memberi **yaw** yang tidak dimiliki GeoCalib; `f` adalah bottleneck. `1cam` 4/20 outlier per frame. Detail: `reports/svld-vp/README.md`.
-- **AnyCalib** 100 citra: **6/100** lulus Δf<5% (median 18,2%); fusion Geo+Any tidak mengalahkan GeoCalib; VP + AnyCalib **34/100**. `f` dari pitch GeoCalib + VP juga gagal (median 21,6%). Detail: `reports/svld-calib-fusion/README.md`.
+- **AnyCalib** 100 citra: **6/100** lulus Δf<5% (median 18,2%); VP + AnyCalib **34/100**. `f` dari pitch GeoCalib + VP juga gagal (median 21,6%). Detail: `reports/svld-calib-fusion/README.md`.
+- **Fusi `f` GeoCalib+AnyCalib vs GT SVLD (26 Nov):** 50/50 memberi MAE **19,53%**, **17/100** lulus 5% — lebih buruk dari GeoCalib (19,35%, 20/100). Rasio estimasi/GT 0,807 (Geo) dan 0,830 (Any), korelasi galat **0,929**, jarak antar-model hanya 7,05%: kedua model bias ke arah yang sama, berbeda dari Cawang. Setelah **skala per kamera di-anchor dengan satu frame ber-`f`**, 50/50 memberi MAE **4,28%** dan **71/95** lulus sebagai ukuran **stabilitas relatif** (bukan `f` absolut); per scene `session0_right` 1,07%, `session0_centre` 1,69%, `1cam` 1,89%, `session6_right` 6,81%, `0cam` 9,96%. Detail: `reports/svld-calib-fusion/fusion-gt-2026-11-26.md`.
 - **Lane fit** (3 garis + lebar lajur): identifiabel di sintetis (f/h pulih sempurna), tetapi **0/45** citra SVLD lulus; RMS 11–139 px. Bottleneck lane extraction/assignment, bukan matematika.
 - **Vertical VP / gravitasi**: VP sejati dari GT memberi f exact; `vanishPoints` tersimpan error 2,5–26%; gravitasi GeoCalib + VP hanya `session0_centre` (20/20, 0,8%), overall 20/100. Garis vertikal otomatis LSD: 0cam 2/20 OK, 1cam 18/20 tapi hanya 4/18 lulus; sudut vs gravitasi 35–43°. **GlobustVP**: 0cam 2/3, 1cam 3/3, tetapi vertikal 24–35° dan 0 inlier; SCS tanpa MOSEK lambat/tidak stabil. Belum layak; perlu manual/deep VP.
 - **PerspectiveFields (CVPR 2023)**: f rasio 0,328 (0cam), 0,952 (1cam), 0,691/0,582/0,576 (session); VP vertikal 51-83 deg; hanya 1cam 11/20 lulus 5%. Model punya prior vFoV ~30-33 deg, gagal untuk lensa tele 10-14 deg.
@@ -132,6 +137,7 @@ Empat set parameter (A–D) memfit citra hampir sama; perbedaan proyeksi maksimu
 Komponen ini cukup untuk membentuk homografi metrik, tetapi **belum cukup jika hanya ditempel** (f model + VP mentah + w=3,60 + langsung hitung H).
 
 - `f` GeoCalib di Cawang 943–980 px (9–13% terlalu rendah); AnyCalib 1100–1207 px tergantung frame.
+- **Fusi `f` 50/50 GeoCalib+AnyCalib (8 median temporal Cawang, 26 Nov):** MAE **1,58%**, maks **3,92%**, **8/8** lulus gerbang 5%; bobot optimal `0,470 Geo / 0,530 Any`, koreksi skala `1,006`, LOO MAE `1,80%`. Ini terjadi karena bias GeoCalib `−13,1%` dan AnyCalib `+11,4%` hampir sama besar dan berlawanan arah — **spesifik Cawang**, bukan sifat umum. Di GT SVLD fusi buta hanya **17/100** vs GeoCalib 20/100; rasio 0,807/0,830 dan korelasi galat 0,929 (bias searah). Setelah skala per kamera di-anchor, ensemble hanya mengukur **stabilitas relatif**: MAE **4,28%**, **71/95** lulus; `f` absolut tetap dari anchor. Detail: `reports/calib-compare/fusion-2026-11-26.md` dan `reports/svld-calib-fusion/fusion-gt-2026-11-26.md`.
 - VP dari garis (`vpfit`) beda 0,21° pitch dan 0,34° yaw dari dash fit; RMS fixed pose 1,333 px vs 1,101 px.
 - `w=3,60 m` masih asumsi; error skala ±4% menjadi sekitar ±9 cm pada 30 m. **Cawang 20 ft TEMA 6,046 (−0,2%) mendukung 3,6 m di lokasi ini**; 40 ft SINKOR ambigu 40/45 ft. Data SVLD: lebar lajur **2,7–3,56 m**; untuk lokasi lain, ukur per lokasi.
 - GeoCalib melihat roll −0,54°; model dash Cawang mengabaikan roll. Bisa jadi superelevasi nyata, bukan sekadar error model.
@@ -156,6 +162,28 @@ Syarat agar combo ini cukup:
 - **I24V**: 234 kamera 1080p, 234 jam; `H`/`P` static/dynamic; fokus tracking, bukan pengganti I24-3D; lebih besar.
 - **CUTC**: checkerboard/ChArUco, GT paling bersih; **RoScenes**: multi-kamera roadside.
 - Repo `I24-MOTION/I24-3D-dataset` adalah **toolkit** (`homography.py`, `scene.py`, `export_dataset.py`), bukan dataset. Detail dan link: `reports/DATASET-KALIBRASI.md`.
+
+### 4.2.3 Geolokasi CCTV Bina Marga dan cakupan street view (27 Nov)
+
+- **258 kamera** Bina Marga di 16 ruas: **222** berkoordinat, **206** punya KM, **166** memakai koordinat existing, **56** diinterpolasi dari KM + centerline OSM, **20** di-clamp.
+- **Tol Dalam Kota (Cawang–Pluit): 26 kamera**, semuanya berkoordinat. **21** `provisional_stationing` (KM + A/B), **5** `interpolated_km`; **17 KM unik**. Offset koordinat existing terhadap centerline OSM **median 21,8 m, maks 133,4 m**.
+- **KartaView 26/26 kamera** punya citra usable dalam radius 300 m; jarak **median 2,1 m, maks 6,5 m**; semua **2020-05/06, proyeksi `PLANE`** (perspektif, bukan equirect).
+- **Panorama Cawang 2023** (ID `1838190345`, 5760×2880 equirect) berada **210,05 m** dari koordinat sementara KM 00+400. Matching ke frame CCTV hanya **~25 inlier SIFT** (FOV 100°, pitch −20°, yaw 0°) dan **~12 inlier LoFTR** (FOV 120°, conf 0,2).
+- Angka **115/158 inlier** sebelumnya **tidak valid**: thumbnail 1280×720 adalah pandangan perspektif (HFOV ≈120°), bukan equirect. Korelasi thumbnail dengan crop panorama yaw 0/FOV 120 adalah 0,886, jadi thumbnail itu crop dari panorama.
+- **Putusan:** street view berguna untuk verifikasi kasar ruas/arah, jumlah lajur, dan prior VP; **bukan** sumber `f`/pose atau anchor metrik. Jarak 210 m + perubahan scene 2023→2026 terlalu besar untuk matching yang reprodusibel.
+- Detail: `reports/cctv-geolocation-2026-11-27/README.md`.
+
+### 4.2.4 Dash + garis solid: memutus degenerasi `f` (27 Nov)
+
+- **Dash-only BELMERA tetap degenerate.** Free fit `f=1101,09`, RMS `0,320 px`; memaku `f=989,11` memberi RMS `0,320 px` juga. Pola dash hanya menentukan rasio, bukan skala absolut.
+- **Garis solid satu lebar lajur memutus degenerasi.** BELMERA (garis kuning median, `w=3,6 m`, period 13 m/dash 5 m): `f=811,55`, pitch `15,551°`, yaw `−0,106°`, `h=10,438 m`, RMS `0,439 px`.
+- **Fixed-f RMS:** `f=989,11` → `1,674 px`; `f=1101,09` → `2,469 px`. Scan `f` minimum di ~810. Kovarians statistik `8,76 px` (`1,08%`), tetapi ini hanya noise piksel.
+- **Lebar lajur dominan:** `w=3,0 → f=985,3`; `3,3 → 890,8`; `3,6 → 811,6`; `3,9 → 744,1`. Perubahan ±0,3 m menggeser `f` ~8–10%.
+- **Standar dash juga dominan:** period 13,333 m/dash 5 m → `f=826,3` (RMS 0,488); period 8 m/dash 3 m → `f=462,2` (RMS 0,488). Keduanya rasio 0,375; citra tidak bisa membedakan tanpa konteks situs. Tol → 5 m; jalan kota → 3 m.
+- **Stabilitas:** near-only 809,3 vs far-only 819,0 (beda 1,2%); sisi salah memberi RMS 42,9. Garis putih tepi kiri dengan offset +2 memberi `f=412,9`, pitch 33°, `h=21 m` — tidak konsisten; jangan pakai batas yang jumlah lajurnya tidak pasti.
+- **BORR tidak valid:** solid memutus degenerasi secara prinsip (`f=987,16`; fixed `f=1663,67` RMS 3,500 vs 1,436), tetapi `u` dash naik 324→494 terhadap jarak — jalan melengkung. Model garis lurus tidak berlaku.
+- **Putusan:** garis solid adalah tambahan yang berguna untuk situs lurus dengan satu dash + satu solid, tetapi `f` hanya identifiabel **bersyarat** pada `w` dan standar dash. Belum ada klaim akurasi absolut; perlu uji terhadap GT SVLD dan pengukuran `w` per situs.
+- Detail: `reports/cctv-solid-line-2026-11-27/README.md`.
 
 ### 4.3 SVLD-3D
 
@@ -299,6 +327,11 @@ Grounding DINO tiny + SAM 2.1 tiny.
 | Jalan Cawang melengkung | galat sistematis | batasi segmen lurus |
 | Kalibrasi Cawang tanpa GT | hanya konsistensi | standar kontainer 20 ft |
 | Anchor 3,6 m diasumsikan | skala bisa salah 5%+ | Cawang 20 ft valid −0,2%; lokasi lain ukur lajur; SVLD 2,7-3,56 m |
+| Geolokasi CCTV hanya provisional | posisi kamera bisa meleset puluhan meter | KM + OSM + arah A/B; verifikasi street view; bukan survei |
+| Street view jauh dari kamera | matching lemah, pose tidak stabil | Cawang 2023 210 m; ~25 SIFT/12 LoFTR; jangan pakai untuk `f` |
+| Lebar lajur tidak diukur | `f` dash+solid bergeser ~8–10% per ±0,3 m | ukur per situs; satu kendaraan/landmark; jangan pakai 3,6 m buta |
+| Standar dash 3 m vs 5 m ambigu | `f` bisa berbeda ~1,8× | konteks situs (tol vs kota); ukur marka; butuh model skala absolut |
+| Garis solid hanya untuk segmen lurus | jalan melengkung (BORR) gagal | batasi segmen lurus; model lengkung atau homografi lokal |
 | Mask body tanpa ban | panjang bias | lower envelope; SAM2 container-only |
 | Kecepatan tidak stabil | time-of-passage mentah | track lebih panjang; garis crossing |
 | Lisensi non-komersial | tidak untuk produk | validasi riset; data sendiri |
@@ -321,6 +354,10 @@ Grounding DINO tiny + SAM 2.1 tiny.
 8. **Validasi Indonesia** — satu kendaraan diukur dengan meteran.
 9. **Metrologi legal** — sertifikasi alat, ketertelusuran.
 10. **Lisensi model** — OpenPifPaf AGPL, data NC; jalur produksi belum jelas.
+11. **Akurasi `f` dash + solid terhadap GT SVLD** — apakah metode ini bisa <5% pada citra SVLD yang punya satu dash + satu solid?
+12. **Lebar lajur aktual per CCTV** — bisakah diukur tanpa survei (kendaraan known-width, marka lain, atau container)?
+13. **Distorsi radial CCTV** — seberapa besar `k1`, dan apakah near/far konsisten di kamera selain BELMERA?
+14. **Batas street view** — apakah ada citra street-level dalam 10–20 m dari kamera Cawang, atau perlu survei manual?
 
 ---
 
@@ -418,6 +455,8 @@ Skrip penting:
 
 ## 11. Rekomendasi berikutnya
 
+**Prioritas 0 (baru, 27 Nov) — ukur lebar lajur dan uji dash + solid terhadap GT SVLD.** Jalur aktif adalah kalibrasi geometri marka, bukan street view. Langkah: (a) pilih frame SVLD yang punya satu dash + satu garis solid; (b) jalankan `fit_dash_line.mjs --solid`; (c) bandingkan `f` dengan XML GT; (d) ulangi untuk beberapa lebar lajur/standar dash. Ini satu-satunya cara mengukur akurasi absolut metode, karena dash fit Cawang bukan GT independen.
+
 **Prioritas 1 — validasi 20 ft berulang.** Uji 3–5 kontainer 20 ft lain dengan box prompt container-only. Jika semuanya 6,0–6,2 m, klaim validasi 20 ft kuat.
 
 **Prioritas 2 — identifikasi 40 vs 45 ft.** Uji kontainer 40 ft yang jelas, atau baca kode ISO 6346 (bukan plat kendaraan). Tanpa tipe, 13,99 m tidak bisa disebut galat.
@@ -442,6 +481,7 @@ Yang sudah benar-benar kuat:
 - Lima titik cukup.
 - Kalibrasi SVLD.
 - Container-only 20 ft (−0,2%).
+- Dash + garis solid memutus degenerasi `f` (BELMERA, bersyarat).
 
 Yang masih rapuh:
 
@@ -451,5 +491,8 @@ Yang masih rapuh:
 - Generalisasi ke Indonesia.
 - 40 vs 45 ft.
 - Ambiguitas lajur ATP.
+- Geolokasi CCTV (provisional, bukan survei).
+- Matching street view (210 m, ~25 SIFT/12 LoFTR).
+- Lebar lajur aktual dan standar dash (sistematis, bukan noise).
 
 Jangan menambah dokumen baru sebelum salah satu dari lima prioritas di atas dieksekusi.

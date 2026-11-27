@@ -225,6 +225,23 @@ node scripts\calib_compare\fit_compare.mjs
 python scripts\calib_compare\make_summary.py
 ```
 
+### Fusi `f` GeoCalib + AnyCalib (Cawang)
+
+`fuse_focal.py` menggabungkan `f` kedua model; dash fit hanya dipakai sebagai referensi evaluasi. Uji 26 November 2026 memakai 8 median temporal Cawang:
+
+```powershell
+$py = "C:\Users\omega\AppData\Local\Temp\opencode\geoenv\Scripts\python.exe"
+& $py scripts\calib_compare\fuse_focal.py `
+  --geo-dir out\calib-compare\fusion `
+  --any out\calib-compare\fusion\anycalib_all8.json `
+  --any-gen out\calib-compare\fusion\anycalib_gen_all8.json `
+  --geo-multi out\calib-compare\fusion\geocalib_multi_all8.json `
+  --ref 1082.35 `
+  --out-dir out\calib-compare\fusion\all8
+```
+
+Hasil: GeoCalib `−13,1%`, AnyCalib `+11,4%`, rata-rata 50/50 **MAE 1,58%**, maks 3,92%, **8/8 lulus 5%**. Bias berlawanan; ini spesifik Cawang. Detail: `../reports/calib-compare/fusion-2026-11-26.md`.
+
 ## GeoCalib vs GT SVLD
 
 Sampling 10 citra per scene per split (test + trainval) dan evaluasi f/pitch terhadap XML:
@@ -280,6 +297,7 @@ foreach ($split in 'test','trainval') {
 }
 py scripts\eval_svld_anycalib.py --out out\svld_anycalib
 py scripts\eval_svld_fusion.py --out out\svld_fusion
+py scripts\eval_svld_focal_fusion.py --out out\svld_focal_fusion
 
 # Prototipe f/h dari geometri lajur + lebar lajur
 py scripts\svld_lane_fit.py --scene session0_right --out out\svld_lane_fit_right
@@ -310,7 +328,58 @@ py scripts\svld_box_calib_sensitivity.py --trials 3 --out out\svld_box_calib
 py scripts\svld_box_calib_scene.py --per-scene 30 --trials 5 --out out\svld_box_calib
 ```
 
-Hasil: AnyCalib **6/100** (median Δf 18,2%), GeoCalib 20/100; fusion tidak mengalahkan GeoCalib. VP + Any **34/100**, VP + Geo **47/100**, VP + GT **95/100**. Lane fit identifiabel di sintetis, tetapi **0/45** nyata karena lane extraction/assignment. Vertical VP otomatis: 0cam **2/20** OK, 1cam 18/20 OK tetapi hanya **4/18** lulus; gravitasi GeoCalib + VP hanya `session0_centre`. GlobustVP: 0cam 2/3, 1cam 3/3, tetapi vertikal 24–35° / 0 inlier; tidak turnkey. Detail: `../reports/svld-calib-fusion/README.md`.
+Hasil: AnyCalib **6/100** (median Δf 18,2%), GeoCalib 20/100; fusi buta 50/50 **17/100** (MAE 19,53% vs GeoCalib 19,35%), karena galat kedua model berkorelasi 0,929 dan biasnya searah. Setelah skala per kamera di-anchor dengan satu frame ber-`f`, ensemble memberi MAE **4,28%** dan **71/95** lulus sebagai **stabilitas relatif** (bukan `f` absolut). VP + Any **34/100**, VP + Geo **47/100**, VP + GT **95/100**. Lane fit identifiabel di sintetis, tetapi **0/45** nyata karena lane extraction/assignment. Vertical VP otomatis: 0cam **2/20** OK, 1cam 18/20 OK tetapi hanya **4/18** lulus; gravitasi GeoCalib + VP hanya `session0_centre`. GlobustVP: 0cam 2/3, 1cam 3/3, tetapi vertikal 24–35° / 0 inlier; tidak turnkey. Detail: `../reports/svld-calib-fusion/README.md`.
+
+## CCTV Bina Marga, street view, dan garis solid
+
+Geolokasi CCTV dari KM + arah A/B dan centerline OSM:
+
+```powershell
+& "C:\Users\omega\AppData\Local\Temp\opencode\geoenv\Scripts\python.exe" `
+  scripts\cctv_geolocate.py `
+  --cameras out\cctv-geolocate\source\cameras.json `
+  --out out\cctv-geolocate
+```
+
+Cek cakupan KartaView (radius 300 m):
+
+```powershell
+& "C:\Users\omega\AppData\Local\Temp\opencode\geoenv\Scripts\python.exe" `
+  scripts\cctv_streetview_check.py `
+  --cameras out\cctv-geolocate\cameras_dalam_kota.csv `
+  --radius 300 --out out\cctv-geolocate
+```
+
+Matching CCTV ke panorama/citra street view:
+
+```powershell
+& "C:\Users\omega\AppData\Local\Temp\opencode\geoenv\Scripts\python.exe" `
+  scripts\cctv_streetview_match.py `
+  --frame out\streetview-proto\frames\cawang_t60.png `
+  --lat -6.245114 --lon 106.877589 --radius 300 `
+  --matcher both --out out\streetview-proto
+```
+
+Deteksi garis solid dan fit dash + solid:
+
+```powershell
+& "C:\Users\omega\AppData\Local\Temp\opencode\geoenv\Scripts\python.exe" `
+  scripts\calib_compare\detect_solid_line.py `
+  videos\frames\belmera_tm30_001.png `
+  --color yellow --roi 450,250,640,720 --vmin 300 --vmax 715 `
+  --out videos\frames\belmera_solid_yellow.json
+
+node scripts\calib_compare\fit_dash_line.mjs `
+  --frame belmera_solid `
+  --dashes videos\frames\belmera_sel.json `
+  --width 1280 --height 720 `
+  --period 13 --dash-length 5 --lane-width 3.6 `
+  --solid videos\frames\belmera_solid_yellow.json --solid-offset -1 `
+  --out videos\frames\belmera_solid_fit `
+  --fixed-f 989.113 --scan-f 700:950:10
+```
+
+Hasil: 258 kamera Bina Marga, 222 berkoordinat; Dalam Kota 26 kamera, offset existing vs OSM median 21,8 m. KartaView 26/26 usable, median 2,1 m, semua 2020 `PLANE`; panorama Cawang 2023 210 m, hanya ~25 SIFT/12 LoFTR. Dash + solid BELMERA memberi `f=811,55` (w=3,6 m), fixed `f=989,11` RMS 1,674 vs 0,320 dash-only; `w` dan standar dash tetap sistematis. Detail: `../reports/cctv-geolocation-2026-11-27/README.md` dan `../reports/cctv-solid-line-2026-11-27/README.md`.
 
 ## Catatan teknis
 

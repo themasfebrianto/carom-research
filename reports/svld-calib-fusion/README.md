@@ -1,6 +1,6 @@
 # SVLD: AnyCalib, Fusion f, dan Lane Fit
 
-**Tanggal:** 20 November 2026  
+**Tanggal:** 20 November 2026; update fusi `f` 26 November 2026  
 **Tujuan:** menguji apakah f bisa diperbaiki dengan AnyCalib, kombinasi VP + model, atau geometri lajur.
 
 ---
@@ -9,7 +9,7 @@
 
 1. **AnyCalib tidak memperbaiki f di SVLD**: **6/100** lulus Δf <5%, median **18,2%**; GeoCalib tetap lebih baik (**20/100**, median 14,9%).
 2. **Kombinasi VP + AnyCalib**: **34/100** lulus pitch/yaw <2°; lebih buruk dari VP + GeoCalib (**47/100**) dan jauh di bawah VP + f GT (**95/100**).
-3. **Fusion sederhana tidak membantu**: rata-rata GeoCalib+AnyCalib 17/100; bobot 75% GeoCalib 20/100 — tidak ada perbaikan.
+3. **Fusion buta tidak membantu**: rata-rata GeoCalib+AnyCalib **17/100**, MAE 19,53% vs GeoCalib 19,35% (20/100). Galat kedua model berkorelasi `r = 0,93` dan sama-sama 17–19% terlalu rendah; lihat `fusion-gt-2026-11-26.md`. **Setelah skala per kamera di-anchor dengan satu frame ber-`f` diketahui**, fusi 50/50 memberi MAE **4,28%** dan **71/95** lulus; 3/5 kamera hampir sempurna, `0cam` dan `session6_right` tetap gagal karena drift antar-frame. Ini mengukur **stabilitas relatif**, bukan pencarian `f` absolut: untuk kamera statis, `f` anchor tetap jawabannya.
 4. **f dari pitch GeoCalib + VP** juga gagal: median error f **21,6%**, 0/100 lulus.
 5. **Lane fit (f/h dari 3 garis lajur + lebar lajur)**:
    - **Sintetis berhasil**: semua start konvergen ke f/h yang benar (RMS 0 px).
@@ -44,6 +44,22 @@ Per scene (AnyCalib vs GeoCalib, median Δf):
 | session6_right | 18,4% / 19,0% | 24,9% / 19,1% |
 
 **Bacaan:** AnyCalib hanya lebih baik di `1cam` dan sebagian `session6_right`; tidak ada scene yang menjadi <5% secara konsisten. Fusion tidak mengalahkan GeoCalib.
+
+### 2.1 Cek fusi terhadap GT (26 November 2026)
+
+Evaluasi khusus fusi `f` pada 100 citra yang sama, dengan GT XML dan tanpa memakai GT sebagai input. Detail lengkap: `fusion-gt-2026-11-26.md`.
+
+| Metode | MAE | Median `|Δf|` | Lulus <5% | Lulus <10% |
+|---|---:|---:|---:|---:|
+| GeoCalib | **19,35%** | **14,91%** | **20/100** | 25/100 |
+| AnyCalib | 20,18% | 18,17% | 6/100 | **34/100** |
+| 50/50 Geo+Any | 19,53% | 16,97% | 17/100 | 31/100 |
+| 50/50 + anchor 1 frame/kamera (relatif) | **4,28%** | — | **71,3/95** | — |
+
+- Rasio estimasi/GT: GeoCalib `0,807`, AnyCalib `0,830`; korelasi galat **0,929**; jarak antar-model hanya **7,05%**. Kedua model bias ke arah yang sama, jadi 50/50 tidak menghapus apa pun — berbeda dari Cawang yang biasnya berlawanan.
+- Fusi 50/50 lebih buruk daripada model terbaik di **setiap** scene. Oracle pemilih per citra pun hanya 22/100 dan MAE 16,85%: masalahnya bias bersama, bukan pemilihan model.
+- Anchor skala per kamera (satu frame ber-`f` diketahui, Monte Carlo 2.000 undian) menurunkan MAE ke **4,28%** (p10–p90 3,64–5,29%), **71,3/95** lulus. Per scene: `session0_right` 1,07%, `session0_centre` 1,69%, `1cam` 1,89%, `session6_right` 6,81%, `0cam` 9,96%.
+- Sisa galat mengikuti CV ensemble dalam scene: 0,9–1,6% untuk tiga kamera yang berhasil, 5,8–8,6% untuk `0cam`/`session6_right`. Satu anchor tidak cukup bila estimasi bergeser antar-frame. Untuk kamera statis, `f` anchor tetap jawabannya; ensemble hanya cek konsistensi/deteksi drift.
 
 ---
 
@@ -181,6 +197,7 @@ foreach ($split in 'test','trainval') {
 }
 py scripts\eval_svld_anycalib.py --out out\svld_anycalib
 py scripts\eval_svld_fusion.py --out out\svld_fusion
+py scripts\eval_svld_focal_fusion.py --out out\svld_focal_fusion
 
 # Lane fit (prototipe)
 py scripts\svld_lane_fit.py --scene session0_right --out out\svld_lane_fit_right
@@ -201,6 +218,7 @@ Artefak:
 - `out/svld_anycalib/*.json` — 10 batch AnyCalib.
 - `out/svld_anycalib/eval_anycalib.csv` — 100 baris.
 - `out/svld_fusion/fusion_summary.csv` — kombinasi VP + f.
+- `out/svld_focal_fusion/` — fusi `f` vs GT: per frame, metode, scene, dan Monte Carlo anchor.
 - `out/svld_lane_fit*/lane_fit.csv` — prototipe lane fit.
 - `out/svld_vertical_vp_*` — VP vertikal otomatis 0cam/1cam.
 - `out/svld_globustvp_*` — hasil GlobustVP.
@@ -209,6 +227,10 @@ Artefak:
 - `reports/svld-calib-fusion/lane_fit_summary.csv` — ringkasan lane fit.
 - `reports/svld-calib-fusion/vertical_vp_summary.csv` — ringkasan vertical VP.
 - `reports/svld-calib-fusion/globustvp_summary.csv` — ringkasan GlobustVP.
+- `reports/svld-calib-fusion/fusion-gt-2026-11-26.md` — laporan fusi `f` terhadap GT SVLD.
+- `reports/svld-calib-fusion/fusion_gt_methods.csv` — ringkasan metode fusi.
+- `reports/svld-calib-fusion/fusion_gt_scenes.csv` — ringkasan fusi per scene.
+- `reports/svld-calib-fusion/fusion_gt_anchor.csv` — Monte Carlo anchor per kamera.
 
 ---
 

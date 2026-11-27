@@ -1,0 +1,15 @@
+case,site,solid_points,lane_w_m,period_m,dash_length_m,f,pitch_deg,yaw_deg,h_m,rms_px,f_sigma_px,fixed_f,fixed_rms_px,note
+belmera_dash,BELMERA,0,3.6,13,5,1101.089,11.803,0.1217,8.2204,0.3197,,989.113,0.3197,dash only; degenerate: fixed f=989.113 -> RMS 0.320
+belmera_solid_w3.0,BELMERA,20,3,13,5,985.316,12.9092,-0.0887,8.8003,0.4386,10.605,,,"solid yellow line, w=3.0 m"
+belmera_solid_w3.3,BELMERA,20,3.3,13,5,890.786,14.226,-0.0976,9.6267,0.4386,9.599,,,"solid yellow line, w=3.3 m"
+belmera_solid_w3.6,BELMERA,20,3.6,13,5,811.55,15.5506,-0.1065,10.4376,0.4386,8.756,,,"solid yellow line, w=3.6 m; fixed f=989.113 -> RMS 1.674; fixed f=1101.089 -> RMS 2.469"
+belmera_solid_w3.9,BELMERA,20,3.9,13,5,744.07,16.8837,-0.1153,11.2311,0.4386,8.04,,,"solid yellow line, w=3.9 m"
+belmera_solid_p13.333,BELMERA,20,3.6,13.333,5,826.337,15.1934,-0.1276,10.409,0.4884,9.933,,,"period 13.333 m, dash 5 m (highway 3:5 pattern)"
+belmera_solid_p8,BELMERA,20,3.6,8,3,462.163,25.8993,-0.2127,9.7027,0.4885,5.661,,,"period 8 m, dash 3 m (urban 3:5 pattern)"
+belmera_solid_near,BELMERA,10,3.6,13,5,809.298,15.5655,-0.1322,10.431,0.4453,12.925,1101.089,2.3447,10 near solid points (v >= 500)
+belmera_solid_far,BELMERA,10,3.6,13,5,819.009,15.5698,0.0428,10.5418,0.2991,6.694,1101.089,2.8146,10 far solid points (v < 500)
+belmera_solid_wrongside,BELMERA,20,3.6,13,5,365.758,-4.4989,-10.5093,20.6154,42.9205,,,,solid offset +1 instead of -1; rejected
+belmera_dash_p13.333,BELMERA,0,3.6,13.333,5,1060.318,12.0912,0.0324,8.5164,0.5791,,989.113,0.5791,"dash only, period 13.333 m, dash 5 m; degenerate"
+belmera_dash_p8,BELMERA,0,3.6,8,3,1084.205,11.8322,0.0317,5.0068,0.5794,,989.113,0.5794,"dash only, period 8 m, dash 3 m; degenerate"
+borr_dash,BORR,0,3.6,13,5,1156.45,11.2416,6.0063,6.2972,1.3141,,1663.67,1.3141,"dash only; curved road, straight-line model invalid"
+borr_solid,BORR,20,3.6,13,5,987.16,13.6001,7.1616,7.7176,1.4361,45.683,1663.67,3.4996,solid yellow line; fixed f=1663.67 -> RMS 3.500 vs 1.436
