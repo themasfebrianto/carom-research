@@ -7,7 +7,7 @@ Salinan kurasi dari folder kerja `out/`. Folder `out/` tetap di-`.gitignore` kar
 - Format: UTF-8; tidak ada citra, video, bobot model, atau dataset
 - Jumlah: 102 berkas
 - Tambahan 26 November 2026: laporan fusi `f` GeoCalib+AnyCalib untuk Cawang dan untuk GT SVLD, beserta tabel ringkasannya
-- Tambahan 27 November 2026: laporan geolokasi CCTV Bina Marga + cakupan KartaView, dan laporan dash + garis solid untuk memutus degenerasi `f`
+- Tambahan 27 November 2026: laporan geolokasi CCTV Bina Marga + cakupan KartaView, laporan dash + garis solid untuk memutus degenerasi `f`, dan diagnosis kegagalan GeoCalib + garis VP per citra
 
 ## Indeks
 
@@ -22,6 +22,7 @@ Salinan kurasi dari folder kerja `out/`. Folder `out/` tetap di-`.gitignore` kar
 | `svld-trainval/` | **SVLD-3D trainval**: 14.592 gambar, 700 Truck, 1.166 Bus; kalibrasi, fit truk/bus, peringatan `veh_size` preset |
 | `svld-geocalib/` | **GeoCalib vs SVLD GT**: 100 citra, 5 scene; f dan pitch; 20/100 lulus; multi 1/5 |
 | `svld-vp/` | **VP jalan vs SVLD GT**: 95/100 (f GT), median per scene 5/5; lebar lajur 2,7–3,56 m |
+| `svld-vp-failure-2026-11-27/` | **Diagnosis 53 kegagalan GeoCalib+VP**: 48 `f`-out, 5 outlier VP; bias `f` per kamera; scale+median VP 95/100 |
 | `svld-vehicle-anchor/` | **Kendaraan well-known sebagai anchor**: bus Higer 12,6 vs kelas 12 m; anotasi SVLD sirkular |
 | `svld-calib-fusion/` | **AnyCalib + fusion f + lane fit**: AnyCalib 6/100; VP+Any 34/100; lane fit 0/45; fusi buta 17/100 vs GeoCalib 20/100, anchor per kamera 4,28% |
 | `svld-vehicle-vp/` | **PerspectiveFields + vehicle VP + 3D box PnP**: PF gagal 4/5 scene; deep_vp dicek; 3D box GT f 0,00-0,21% |
@@ -120,6 +121,17 @@ Hasil pokok: **20/100 citra lulus** (hanya `session0_centre`); Δf median 14,9%,
 | `lane_width_frames.csv` | Lebar lajur per frame dari marka |
 
 Hasil pokok: VP + `f` GT **95/100** lulus pitch/yaw <2° (median 0,20°/0,05°); median VP per scene **5/5** <0,5°. VP + `f` GeoCalib **47/100** (2,46°/1,12°); GeoCalib saja 20/100. VP memberi yaw; `f` tetap bottleneck. Lebar lajur **2,7–3,56 m**; 3,6 m tidak universal.
+
+### `svld-vp-failure-2026-11-27/`
+
+| Berkas | Isi |
+|---|---|
+| `README.md` | Laporan diagnosis: dekomposisi error, window `f` per citra, outlier VP, mitigasi |
+| `diagnosis.csv` | 100 baris: `f` Geo/GT, window, komponen error, `cause`, `detail` |
+| `failure_table.md` | 53 baris kegagalan dengan alasan per citra |
+| `diagnosis_summary.json` | Ringkasan per scene, mitigasi, single anchor, outlier VP |
+
+Hasil pokok: **47/100 pass**. **48/53 gagal murni karena `f`** di luar window; **5/53** adalah VP outlier + `f` di luar window; **0 kegagalan murni VP**. VP identik di 99/100 citra; dengan `f` GT, 95/100 pass. Bias `f` GeoCalib per kamera: GT/Geo **1,92×** (0cam), **1,14×** (1cam), **1,01×** (session0_centre), **1,18×** (session0_right), **1,31×** (session6_right). Window `f`: 0cam −24/+45%, 1cam −8,8/+14,2%, session0_centre −11,7/+17,4%, session0_right −18,2/+29,4%, session6 −13,5/+14,4%. Mitigasi: scale per kamera + median VP **95/100**; affine + median VP **100/100** (oracle). 4 outlier VP 1cam (`v` +237..+342 vs normal −42) dan 1 outlier 0cam (6 inlier) ditolak oleh gate `v < cy` / `inliers ≥ 8`. Detail: `svld-vp-failure-2026-11-27/README.md`.
 
 ### `svld-vehicle-anchor/`
 

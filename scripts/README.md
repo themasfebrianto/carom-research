@@ -283,6 +283,26 @@ py scripts\svld_vp_scene_median.py --out out\svld_vp
 
 Hasil: VP + `f` GT **95/100** lulus pitch/yaw <2° (median 0,20°/0,05°); median VP per scene **5/5** dengan f GT; VP + `f` GeoCalib **47/100** (2,46°/1,12°); GeoCalib saja 20/100. VP memberi **yaw**; `f` tetap bottleneck. Lebar lajur data-driven **2,7–3,56 m**, jadi 3,6 m bukan universal. Detail: `../reports/svld-vp/README.md`.
 
+## Diagnosis kegagalan GeoCalib + garis VP
+
+```powershell
+py scripts\diagnose_svld_vp_failures.py --out out\svld_vp
+```
+
+Skrip membaca `vp_geo.csv`, `vp_gt.csv`, dan `manifest.csv`, lalu menulis
+`diagnosis.csv` (100 baris), `diagnosis_summary.json`, dan tabel kegagalan.
+Untuk setiap citra ia menghitung komponen error `f` vs VP, window `f` yang
+masih memberi pose <2°, dan label `PASS` / `F_OUT` / `BOTH`.
+
+Hasil 27 November 2026: **47/100 pass**; **48/53 gagal karena `f`**, **5/53**
+outlier VP + `f`, **0 murni VP**. VP identik di 99/100 citra; dengan `f` GT
+95/100. Bias `f` GeoCalib per kamera (GT/Geo): 0cam **1,92×**, 1cam **1,14×**,
+session0_centre **1,01×**, session0_right **1,18×**, session6_right **1,31×**.
+Scale per kamera + median VP **95/100**; affine + median VP **100/100** (oracle).
+4 outlier VP 1cam (`v` +237..+342 vs normal −42) dan 1 outlier 0cam (6 inlier)
+ditolak oleh gate `v < cy` / `inliers ≥ 8`. Detail:
+`../reports/svld-vp-failure-2026-11-27/README.md`.
+
 ## AnyCalib dan fusion f SVLD
 
 ```powershell

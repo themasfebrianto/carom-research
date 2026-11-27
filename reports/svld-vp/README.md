@@ -150,8 +150,15 @@ Artefak:
 ## 7. Batas
 
 - VP bergantung pada marka; scene tanpa marka jelas akan gagal.
-- 1cam memiliki outlier VP lokal; belum diuji dengan temporal median.
+- 1cam memiliki 4 outlier VP lokal (`v` +237..+342 vs normal −42); median VP temporal memperbaikinya. Diagnosis per citra ada di `../svld-vp-failure-2026-11-27/README.md`.
 - Gate 2° untuk yaw dan pitch sama seperti SOP; yaw bukan gate resmi SVLD.
 - `f` GT dipakai untuk batas atas; `f` GeoCalib untuk skenario realistis.
 - Lebar lajur dari marka dan kendaraan adalah proxy; bukan pengukuran lapangan.
 - `veh_size` preset tidak dipakai di sini.
+
+---
+
+## 8. Diagnosis kegagalan (27 November 2026)
+
+Uji 47/100 dengan `f` GeoCalib menyisakan 53 kegagalan. Diagnosis per citra:
+**48 murni karena `f` di luar window**, **5 outlier VP + `f`**, **0 murni VP**. VP identik di 99/100 citra; dengan `f` GT, 95/100 lulus. Bias `f` GeoCalib per kamera (GT/Geo): 1,92× (0cam), 1,14× (1cam), 1,01× (session0_centre), 1,18× (session0_right), 1,31× (session6_right). Scale per kamera + median VP memberi **95/100**; affine + median VP **100/100** (oracle). Detail: `../svld-vp-failure-2026-11-27/README.md`.

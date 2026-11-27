@@ -21,7 +21,8 @@ Dokumen ini adalah **ringkasan master**. Detail ada di berkas yang ditautkan di 
 | Geometri/parameterisasi | **terbukti (self-consistency)** | MAPE 0,36% dengan 8 sudut GT; **`veh_size` preset**, bukan ukur fisik |
 | Kalibrasi SVLD | **terverifikasi** | median reproyeksi 0,74 px |
 | GeoCalib | **tidak reliabel di SVLD** | 1/5 scene; 20/100 citra; multi 1/5 |
-| VP jalan | **kuat jika f benar** | 95/100 (f GT), 47/100 (f GeoCalib); yaw tersedia |
+| VP jalan | **kuat jika f benar** | 95/100 (f GT), 47/100 (f GeoCalib); 48/53 gagal karena f, 5 outlier VP |
+| Diagnosis GeoCalib+VP | **f per kamera, bukan VP** | 48 `F_OUT`, 5 `BOTH`, 0 VP murni; scale+median VP 95/100 |
 | AnyCalib | **tidak membantu f** | 6/100; median 18,2% |
 | Fusi `f` Geo+Any (SVLD GT) | **gagal buta; berguna setelah anchor** | 17/100 vs GeoCalib 20/100; korelasi galat 0,93; anchor 1 frame/kamera → MAE 4,28%, 71/95 |
 | Geolokasi CCTV Bina Marga | **provisional, bukan survei** | 258 kamera; 222 koordinat; Dalam Kota 26; offset vs OSM median 21,8 m, maks 133,4 m |
@@ -184,6 +185,18 @@ Syarat agar combo ini cukup:
 - **BORR tidak valid:** solid memutus degenerasi secara prinsip (`f=987,16`; fixed `f=1663,67` RMS 3,500 vs 1,436), tetapi `u` dash naik 324→494 terhadap jarak — jalan melengkung. Model garis lurus tidak berlaku.
 - **Putusan:** garis solid adalah tambahan yang berguna untuk situs lurus dengan satu dash + satu solid, tetapi `f` hanya identifiabel **bersyarat** pada `w` dan standar dash. Belum ada klaim akurasi absolut; perlu uji terhadap GT SVLD dan pengukuran `w` per situs.
 - Detail: `reports/cctv-solid-line-2026-11-27/README.md`.
+
+### 4.2.5 Diagnosis kegagalan GeoCalib + garis VP (27 Nov)
+
+- **47/100 lulus**, **53 gagal**. Dekomposisi: **48 `F_OUT`** (VP bagus, `f` di luar window), **5 `BOTH`** (VP outlier + `f` di luar), **0 murni VP**.
+- **VP bukan bottleneck.** VP identik di **99/100** citra antara `f` GT dan `f` GeoCalib; dengan `f` GT, **95/100** lulus. 5 kegagalan sisanya adalah outlier VP.
+- **Bias `f` GeoCalib per kamera** (GT/Geo): 0cam **1,92×**, 1cam **1,14×**, session0_centre **1,01×**, session0_right **1,18×**, session6_right **1,31×**. Bukan noise acak.
+- **Window `f`** (interval yang masih memberi pose <2°): 0cam −24,1%..+45,1%; 1cam −8,8%..+14,2%; session0_centre −11,7%..+17,4%; session0_right −18,2%..+29,4%; session6 −13,5%..+14,4%. GeoCalib keluar window di 0cam, 1cam, session6.
+- **Sensitivitas:** `dpitch/dln f = −0,5 sin(2·pitch)`. Pitch tinggi (1cam 19°, session6 15°) → window sempit; pitch rendah (0cam 6,4°) → window lebar, tetapi bias 0cam sangat besar.
+- **Mitigasi:** scale per kamera (LOO) + VP per citra **91/100**; scale + median VP **95/100**; affine + median VP **100/100** (oracle, perlu beberapa frame ber-`f`). Median VP saja 48/100; median `f` saja 40/100 (lebih buruk).
+- **5 outlier VP:** 4 di 1cam (`v` +237..+342 vs normal −42; error 13–18°), 1 di 0cam (`v` −220, 6 inlier). Gate `v < cy` menolak 4 outlier 1cam; `inliers ≥ 8` menolak outlier 0cam; median VP temporal lebih kuat.
+- **Sebab:** model learned memakai prior FOV; 0cam 19,4° hFOV jauh di luar distribusi. VP jalan hanya memberi 2 constraint (pitch, yaw); `f` butuh cue kedua (lebar lajur, VP kedua, objek known-width, dash+solid).
+- Detail: `reports/svld-vp-failure-2026-11-27/README.md`; tabel per citra: `diagnosis.csv`, `failure_table.md`.
 
 ### 4.3 SVLD-3D
 
@@ -358,6 +371,9 @@ Grounding DINO tiny + SAM 2.1 tiny.
 12. **Lebar lajur aktual per CCTV** — bisakah diukur tanpa survei (kendaraan known-width, marka lain, atau container)?
 13. **Distorsi radial CCTV** — seberapa besar `k1`, dan apakah near/far konsisten di kamera selain BELMERA?
 14. **Batas street view** — apakah ada citra street-level dalam 10–20 m dari kamera Cawang, atau perlu survei manual?
+15. **Anchor `f` per kamera** — bisakah satu/beberapa frame dengan dash+solid atau 3D box memberi koreksi `f` per kamera yang mencapai 95/100 tanpa GT?
+16. **Stabilitas bias `f`** — apakah rasio GT/Geo per kamera stabil antar hari, cuaca, dan waktu?
+17. **Reliability gate** — bisakah window `f`/sensitivitas pitch memprediksi kegagalan online dengan false-reject rendah?
 
 ---
 
@@ -457,6 +473,8 @@ Skrip penting:
 
 **Prioritas 0 (baru, 27 Nov) — ukur lebar lajur dan uji dash + solid terhadap GT SVLD.** Jalur aktif adalah kalibrasi geometri marka, bukan street view. Langkah: (a) pilih frame SVLD yang punya satu dash + satu garis solid; (b) jalankan `fit_dash_line.mjs --solid`; (c) bandingkan `f` dengan XML GT; (d) ulangi untuk beberapa lebar lajur/standar dash. Ini satu-satunya cara mengukur akurasi absolut metode, karena dash fit Cawang bukan GT independen.
 
+**Prioritas 0b (baru, 27 Nov) — tutup loop diagnosis GeoCalib+VP.** Gunakan anchor `f` dari dash+solid/3D box pada 1–10 frame per kamera; fit koreksi scale/affine per kamera; gunakan median VP temporal; ukur pass rate pada frame held-out tanpa GT `f`. Target: 95/100 dengan satu anchor, 100/100 dengan beberapa anchor. Ini langsung menjawab 48/53 kegagalan yang murni disebabkan `f`.
+
 **Prioritas 1 — validasi 20 ft berulang.** Uji 3–5 kontainer 20 ft lain dengan box prompt container-only. Jika semuanya 6,0–6,2 m, klaim validasi 20 ft kuat.
 
 **Prioritas 2 — identifikasi 40 vs 45 ft.** Uji kontainer 40 ft yang jelas, atau baca kode ISO 6346 (bukan plat kendaraan). Tanpa tipe, 13,99 m tidak bisa disebut galat.
@@ -494,5 +512,7 @@ Yang masih rapuh:
 - Geolokasi CCTV (provisional, bukan survei).
 - Matching street view (210 m, ~25 SIFT/12 LoFTR).
 - Lebar lajur aktual dan standar dash (sistematis, bukan noise).
+- Bias `f` GeoCalib per kamera (1,92× di 0cam; perlu anchor).
+- Outlier VP detektor garis (4/100 di 1cam, 1/100 di 0cam).
 
 Jangan menambah dokumen baru sebelum salah satu dari lima prioritas di atas dieksekusi.
