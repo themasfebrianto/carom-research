@@ -1,0 +1,94 @@
+{
+  "n": 24,
+  "body_error_pct": {
+    "n": 22,
+    "median": 3.838,
+    "p90": 12.138,
+    "max": 38.204
+  },
+  "body_error_pct_valid": {
+    "n": 15,
+    "median": 4.218,
+    "p90": 11.697,
+    "max": 38.204
+  },
+  "foot_error_pct": {
+    "n": 22,
+    "median": 21.574,
+    "p90": 59.859,
+    "max": 77.747
+  },
+  "body_deadzones": 9,
+  "foot_deadzones": 9,
+  "by_angle": {
+    "0-3": {
+      "n": 10,
+      "body_error_pct": {
+        "n": 8,
+        "median": 2.617,
+        "p90": 10.302,
+        "max": 11.066
+      },
+      "body_deadzones": 8
+    },
+    "3-6": {
+      "n": 3,
+      "body_error_pct": {
+        "n": 3,
+        "median": 5.535,
+        "p90": 18.552,
+        "max": 21.806
+      },
+      "body_deadzones": 1
+    },
+    "6-10": {
+      "n": 6,
+      "body_error_pct": {
+        "n": 6,
+        "median": 3.266,
+        "p90": 8.712,
+        "max": 12.257
+      },
+      "body_deadzones": 0
+    },
+    "10-15": {
+      "n": 5,
+      "body_error_pct": {
+        "n": 5,
+        "median": 6.586,
+        "p90": 27.265,
+        "max": 38.204
+      },
+      "body_deadzones": 0
+    }
+  },
+  "by_class": {
+    "Bus": {
+      "n": 2,
+      "body_error_pct": {
+        "n": 2,
+        "median": 12.242,
+        "p90": 19.893,
+        "max": 21.806
+      }
+    },
+    "Car": {
+      "n": 18,
+      "body_error_pct": {
+        "n": 16,
+        "median": 2.952,
+        "p90": 10.521,
+        "max": 38.204
+      }
+    },
+    "Truck": {
+      "n": 4,
+      "body_error_pct": {
+        "n": 4,
+        "median": 8.157,
+        "p90": 11.837,
+        "max": 12.257
+      }
+    }
+  }
+}

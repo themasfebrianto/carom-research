@@ -14,7 +14,8 @@
    - Lebar bodi dari **YOLO-seg mask** meleset **7,1%** median (p90 27,1%).
    - Formula rasio piksel sendiri konsisten: **22/22 <5%** terhadap `w_ref` dari titik lajur yang sama (median 0,79%, p90 3,0%).
    - Detektor lajur otomatis **tidak layak untuk lebar absolut**: median error **134,5%** terhadap prior scene; hanya **3/22** dalam 10%.
-4. **Kesimpulan:** formula benar; yang gagal adalah **pengukuran lebar muka kendaraan** dan **pemilihan garis lajur**. Karena itu anotasi manual 5 titik per kendaraan tetap diperlukan. Tool-nya sudah siap.
+4. **Tangent hull** (`D:\Kerjaan\CCTV-ODOL\cctv\tangent_hull.py`) memperbaiki bias mask: `body` width median **3,8%**, p90 12,1%. Di 0–3° median **2,6%**, tetapi p90 10,3%, ada deadzone, dan bus/truk tidak konsisten. Ini kandidat otomatis untuk mobil near-frontal, belum pengganti manual untuk bus/truk/miring.
+5. **Kesimpulan:** formula benar; yang gagal adalah **pengukuran lebar muka kendaraan** dan **pemilihan garis lajur**. Karena itu anotasi manual 5 titik per kendaraan tetap diperlukan. Tool-nya sudah siap.
 
 ---
 
@@ -156,15 +157,55 @@ Pilot memakai titik lajur dari `detect_lane_vp` di baris kontak, lalu membanding
 
 Detektor lajur menemukan garis di 22/24 citra, tetapi garis yang dipilih sering bukan batas lajur kendaraan: lebar yang dihasilkan 2–4× prior. Formula tetap konsisten karena memakai titik yang sama; yang salah adalah **pemilihan garis**. Karena itu L2 final harus memakai garis lajur manual.
 
+### 4.4 Tangent hull (Dubska/Sochor)
+
+Implementasi tangent hull yang saya temukan ada di `D:\Kerjaan\CCTV-ODOL\cctv\tangent_hull.py`; di `D:\Kerjaan\yolo3Dbbox` yang saya baca hanya ada `cctv/footprint.py` (full-silhouette dengan dimensi tetap), bukan tangent hull. Metode ini membaca lebar dari **kontur mask**: sudut luar bawah + pivot tangent dalam, bukan lebar silhouette penuh. Ini persis yang dibutuhkan untuk memisahkan muka dari sisi samping.
+
+Pilot 24 kandidat, YOLO-seg mask, `shrink_px=0.94`, bacaan `body` (default). Hasil: **22 fit**, **2 no-fit** karena mask terpotong tepi frame (`005254`, `008012`), dan **7 deadzone** length/height (total 9 baris tanpa length/height):
+
+| Metrik | n | Median | p90 | Maks |
+|---|---:|---:|---:|---:|
+| `body` width vs `W_preset` | 22 | **3,84%** | 12,14% | 38,20% |
+| `body` valid (non-deadzone) | 15 | 4,22% | 11,70% | 38,20% |
+| `footprint` width | 22 | 21,57% | 59,86% | 77,75% |
+
+Per sudut:
+
+| Sudut | n | `body` median | `body` p90 | Deadzone/no-fit |
+|---|---:|---:|---:|---:|
+| 0–3° | 10 | **2,62%** | 10,30% | 8 |
+| 3–6° | 3 | 5,54% | 18,55% | 1 |
+| 6–10° | 6 | **3,27%** | 8,71% | 0 |
+| 10–15° | 5 | 6,59% | 27,27% | 0 |
+
+Per kelas:
+
+| Kelas | n | `body` median | Catatan |
+|---|---:|---:|---|
+| Mobil | 18 | **2,95%** | 2 no-fit karena mask terpotong frame (`005254`, `008012`) |
+| Bus | 2 | 12,24% | 1cam bus deadzone, width +21,8% |
+| Truk | 4 | 8,16% | s0c truck +12,3%; s6r truck +3,5% |
+
+**Bacaan:**
+
+1. Tangent hull **lebih baik dari silhouette**: median 3,8% vs bbox 14,8% dan mask 7,1%. Ini konfirmasi bahwa memisahkan muka dari sisi itu penting.
+2. **Tidak universal.** Di 0–3° median 2,6%, tetapi p90 10,3% karena dua mobil 1cam (10–11%) dan dua mask terpotong frame. Di 3–6° dan 10–15° error membesar; bus/truk tidak konsisten.
+3. **`footprint` jangan dipakai untuk bus/truk.** Pita bawah adalah bumper/roda, bukan lebar badan; error sampai 54–78%. Bacaan `body` yang benar untuk `W_spec`.
+4. **Deadzone bukan otomatis membatalkan width.** Kode mengatakan width tetap valid saat length/height deadzone, tetapi 1cam bus memberi width +21,8% pada deadzone `side_ratio=0.004`. Jadi deadzone harus menurunkan confidence width juga, bukan hanya length.
+5. **Asumsi metode ini lebih ketat dari data SVLD.** Metode mengasumsikan kamera hampir level (VP lateral/vertikal di infinity) dan yaw kendaraan <1,5°. SVLD punya pitch 6–15° dan kandidat sampai 10°, jadi hasil di luar 0–3° memang di luar lisensi metode.
+
+**Kesimpulan:** tangent hull layak sebagai **kandidat otomatis / prefill** untuk mobil near-frontal (≤3°, tidak terpotong, `side_ratio` cukup, hull IoU tinggi), tetapi belum bisa menggantikan manual/spec untuk bus, truk, dan kendaraan miring.
+
 ---
 
 ## 5. Temuan
 
 1. **Formula rasio piksel benar.** Dengan titik lajur yang sama, `w_formula` dan `w_ref` berbeda <5% di 22/22 kasus. Implementasi geometri dan konversi kedalaman tidak bermasalah.
-2. **Sumber lebar bodi adalah bottleneck utama.** Bbox 2D dan mask silhouette memasukkan sisi samping/spion; error tumbuh dari ~6% pada 0–3° menjadi ~30% pada 6–10°. Untuk anchor 5%, hanya muka kendaraan yang layak.
+2. **Sumber lebar bodi adalah bottleneck utama.** Bbox 2D dan mask silhouette memasukkan sisi samping/spion; error tumbuh dari ~6% pada 0–3° menjadi ~30% pada 6–10°. Tangent hull menurunkannya ke median 3,8%, tetapi belum universal.
 3. **Detektor lajur otomatis belum bisa dipakai untuk lebar absolut.** Hanya 3/22 dalam 10% dari prior. Ini konsisten dengan lane fit SVLD yang sebelumnya 0/45.
 4. **Baris kontak adalah kunci.** Mengukur lebar bodi di mid-height menambah error hingga 6,3% pada objek dekat; same-row menurunkannya ke <4,4%.
 5. **SVLD tetap validasi geometri, bukan armada Indonesia.** `W_preset` hanya placeholder; L1/L2 final harus memakai model dan datasheet pabrikan.
+6. **Tangent hull bukan pengganti manual.** Ia bagus untuk mobil near-frontal (0–3°, tidak terpotong, side ratio/IoU cukup), tetapi bus/truk/miring masih 8–22% dan deadzone tidak selalu membatalkan width.
 
 ---
 
@@ -200,6 +241,10 @@ Detektor lajur menemukan garis di 22/24 citra, tetapi garis yang dipilih sering 
 # 5. Pilot otomatis (bbox/mask/lane detector)
 & "D:\Kerjaan\LearnPinhole\backend\.venv\Scripts\python.exe" `
   scripts\svld_vehicle_ruler_auto.py --limit 24 --imgsz 1280
+
+# 6. Pilot tangent hull (Dubska/Sochor, dari CCTV-ODOL)
+& "D:\Kerjaan\LearnPinhole\backend\.venv\Scripts\python.exe" `
+  scripts\svld_tangent_hull_pilot.py --limit 24 --imgsz 1280
 ```
 
 `annotate` membuka jendela OpenCV. Klik 5 titik, lalu isi model/`W_spec` di terminal. Tekan `u` untuk undo, `s` untuk simpan, `n` untuk lanjut, `q` untuk keluar.
@@ -216,9 +261,12 @@ Detektor lajur menemukan garis di 22/24 citra, tetapi garis yang dipilih sering 
 | `sim_results.csv` | 24 baris validasi pipeline dengan titik simulasi + lane oracle |
 | `sim_summary.json` | Ringkasan L1/L2 simulasi |
 | `annotations_sim.csv` | Titik simulasi (muka + lane oracle); bukan anotasi independen |
-| `overlays/*.jpg` | Contoh overlay 4 anchor: bus 0cam/1cam, truk session0_centre/session6_right |
+| `tangent_hull_results.csv` | 24 baris tangent hull: `body`/`footprint` width, error, side ratio, hull IoU, deadzone, depth |
+| `tangent_hull_summary.json` | Ringkasan tangent hull per sudut/kelas |
+| `overlays/*.jpg` | Contoh overlay 4 anchor + 4 overlay tangent hull |
 | `../../scripts/svld_vehicle_ruler.py` | Kandidat, simulate, eval, clicker |
 | `../../scripts/svld_vehicle_ruler_auto.py` | Pilot otomatis YOLO-seg + lane detector |
+| `../../scripts/svld_tangent_hull_pilot.py` | Pilot tangent hull dari CCTV-ODOL |
 
 ---
 
@@ -228,6 +276,8 @@ Detektor lajur menemukan garis di 22/24 citra, tetapi garis yang dipilih sering 
 - Mask YOLO adalah model COCO; mask mid-height masih memasukkan sisi samping dan tidak membuang spion.
 - Detektor lajur klasik gagal di 2/24 dan salah garis di sebagian besar sisanya; angka prior bukan GT.
 - `W_spec` pada pilot = `W_preset`; belum ada datasheet pabrikan.
+- Tangent hull mengasumsikan kamera hampir level dan yaw kendaraan <1,5°; SVLD punya pitch 6–15° dan kandidat sampai 10°. Hasil di luar 0–3° di luar lisensi metode.
+- Tangent hull memakai mask YOLO; 2 kandidat tidak bisa di-fit karena mask terpotong tepi frame, dan 7 deadzone length/height. Width tidak selalu otomatis valid di deadzone (contoh 1cam bus).
 - SVLD bukan jalan Indonesia; hasilnya validasi geometri, bukan armada/spec Indonesia.
 - Angka L1/L2 final belum ada; laporan ini adalah tooling + pilot.
 
@@ -239,4 +289,5 @@ Detektor lajur menemukan garis di 22/24 citra, tetapi garis yang dipilih sering 
 2. Evaluasi L1: target median **<3%**, p90 **<5%**.
 3. Evaluasi L2: target median **<5%**, p90 **<10%**.
 4. Kalau lulus, L3: garis lajur manual + median VP + `w_formula` → `f`, bandingkan dengan GT SVLD.
-5. Ulangi protokol di Cawang/BELMERA dengan kendaraan Indonesia (Avanza, Innova, Elf, bus).
+5. Pakai tangent hull `body` sebagai **prefill otomatis** hanya untuk mobil ≤3°, tidak terpotong, `side_ratio` cukup, dan hull IoU tinggi; selain itu manual.
+6. Ulangi protokol di Cawang/BELMERA dengan kendaraan Indonesia (Avanza, Innova, Elf, bus).

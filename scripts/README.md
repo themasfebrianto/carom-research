@@ -380,9 +380,15 @@ w_lane = W_spec × L_px / V_px
 # Pilot otomatis bbox/mask/lane detector (butuh ultralytics)
 & "D:\Kerjaan\LearnPinhole\backend\.venv\Scripts\python.exe" `
   scripts\svld_vehicle_ruler_auto.py --limit 24 --imgsz 1280
+
+# Pilot tangent hull Dubska/Sochor (dari CCTV-ODOL)
+& "D:\Kerjaan\LearnPinhole\backend\.venv\Scripts\python.exe" `
+  scripts\svld_tangent_hull_pilot.py --limit 24 --imgsz 1280
 ```
 
-Hasil: 24 kandidat; pipeline simulasi 24/24 (`eW` 0,37%, `ew` 0,34%). Pada citra nyata, bbox 2D **14,8%** dan YOLO mask **7,1%** lebih lebar dari muka kendaraan; formula konsisten **22/22 <5%** terhadap titik lajur yang sama, tetapi detektor lajur otomatis hanya **3/22 <10%** terhadap prior. **L1/L2 final menunggu anotasi manual.** Detail: `../reports/svld-vehicle-ruler-2026-11-27/README.md`.
+Hasil: 24 kandidat; pipeline simulasi 24/24 (`eW` 0,37%, `ew` 0,34%). Pada citra nyata, bbox 2D **14,8%** dan YOLO mask **7,1%** lebih lebar dari muka kendaraan; formula konsisten **22/22 <5%** terhadap titik lajur yang sama, tetapi detektor lajur otomatis hanya **3/22 <10%** terhadap prior. **L1/L2 final menunggu anotasi manual.**
+
+Tangent hull `body` memberi error width median **3,8%** (p90 12,1%), lebih baik dari bbox/mask tetapi belum universal: 0–3° median **2,6%** (p90 10,3%, 2 mask terpotong, beberapa deadzone), 3–6° 5,5%, 6–10° 3,3%, 10–15° 6,6%; `footprint` 21,6% dan tidak layak untuk bus/truk. Detail: `../reports/svld-vehicle-ruler-2026-11-27/README.md`.
 
 ## CCTV Bina Marga, street view, dan garis solid
 

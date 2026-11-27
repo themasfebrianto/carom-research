@@ -207,6 +207,7 @@ Menguji `w_lane = W_spec × L_px / V_px` dengan kendaraan nyata + lebar pabrikan
 - **Ablasi sumber lebar bodi** pada citra nyata: bbox 2D **14,8%** (p90 44,3%) dan YOLO mask **7,1%** (p90 27,1%) lebih lebar dari muka kendaraan. Rasio bbox/face 1,06 pada 0–3° menjadi 1,32 pada 6–10°; truk 1,51. Anotasi muka kendaraan wajib.
 - **Formula** konsisten **22/22 <5%** (median 0,79%, p90 3,0%) terhadap `w_ref` dari titik lajur yang sama.
 - **Detektor lajur otomatis tidak layak untuk lebar absolut**: hanya **3/22 <10%** terhadap prior scene (median error 134,5%). Lane boundary manual diperlukan.
+- **Tangent hull** (Dubska/Sochor, `CCTV-ODOL/cctv/tangent_hull.py`): bacaan `body` memberi error width median **3,8%** (p90 12,1%), lebih baik dari bbox 14,8% dan mask 7,1%. Namun belum universal: 0–3° median **2,6%** (p90 10,3%, 2 mask terpotong, beberapa deadzone), 3–6° 5,5%, 6–10° 3,3%, 10–15° 6,6%; `footprint` 21,6% dan tidak layak untuk bus/truk. Metode mengasumsikan yaw kendaraan <1,5° dan kamera hampir level; SVLD pitch 6–15° dan kandidat sampai 10° di luar lisensi. Layak sebagai prefill otomatis mobil near-frontal, belum pengganti manual bus/truk/miring.
 - **L1/L2 final menunggu anotasi manual** 5 titik per kendaraan + datasheet model. Detail: `reports/svld-vehicle-ruler-2026-11-27/README.md`.
 
 ### 4.3 SVLD-3D
