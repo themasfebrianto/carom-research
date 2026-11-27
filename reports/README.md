@@ -30,7 +30,7 @@ Salinan kurasi dari folder kerja `out/`. Folder `out/` tetap di-`.gitignore` kar
 | `keypoint/` | Detectability keypoint dan mask-based fitting pada SVLD |
 | `timepass/` | Side-view Cawang dan fitting kontainer |
 | `cawang-container-anchor/` | **Anchor fisik Cawang**: 20 ft TEMA −0,2%; 40 ft SINKOR ambigu 40/45 ft |
-| `calib-compare/` | GeoCalib vs AnyCalib vs VP vs Cawang dengan anchor `w=3,60 m`; termasuk fusi `f` GeoCalib+AnyCalib |
+| `calib-compare/` | GeoCalib vs AnyCalib vs VP vs Cawang dengan anchor `w=3,60 m`; termasuk fusi `f` dan median VP + anchor per kamera |
 | `learnpinhole-video/` | Uji combo pada video tes LearnPinhole (480×360) |
 | `geocalib-anycalib/` | Pros/cons GeoCalib vs AnyCalib + persiapan I24-3D |
 | `DATASET-KALIBRASI.md` | Perbandingan SVLD-3D, I24-3D, I24V, CUTC, RoScenes; parameter dan batasannya |
@@ -204,6 +204,11 @@ Hasil pokok: 20 ft TEMA memvalidasi skala Cawang (3,6 m) dalam ~0,2%; 40 ft SINK
 | `geocalib_*.json` | Keluaran GeoCalib single/multi-frame, termasuk varian distorted |
 | `anycalib_*.json` | Keluaran AnyCalib `simple_pinhole`, `pinhole`, `radial:1`, dan varian model |
 | `fusion-2026-11-26.md` | **Fusi f GeoCalib + AnyCalib**: 8 median temporal Cawang, 50/50 vs bobot terkalibrasi, LOO, varian model |
+| `median-vp-anchor-2026-11-27.md` | **Median VP + anchor f di Cawang**: f error 0,88% (dash anchor) / 1,44% (blind), pose Δ +0,05°/+0,32°, RMS 1,37–1,44 px |
+| `median_vp_anchor_frames.csv` | 8 frame: f Geo/Any/50-50, f dash scale, f blind scale, error, pitch/yaw |
+| `median_vp_anchor_rms.csv` | 6 baris: RMS fixed pose anchor dash/buta pada median2/t350/t500 |
+| `median_vp_anchor_summary.json` | Ringkasan varian, median VP, scale, single anchor LOO |
+| `cawang_vp8.json` | VP per frame + median |
 | `fusion_frames.csv` | Tabel per frame: f GeoCalib, AnyCalib, rata-rata, galat |
 | `fusion_summary.csv` | Ringkasan metode fusi (bias, MAE, RMSE, maks, lulus 5%) |
 | `fusion_distorted_summary.csv` | Ringkasan varian GeoCalib distorted |

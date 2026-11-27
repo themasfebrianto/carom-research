@@ -240,7 +240,9 @@ $py = "C:\Users\omega\AppData\Local\Temp\opencode\geoenv\Scripts\python.exe"
   --out-dir out\calib-compare\fusion\all8
 ```
 
-Hasil: GeoCalib `−13,1%`, AnyCalib `+11,4%`, rata-rata 50/50 **MAE 1,58%**, maks 3,92%, **8/8 lulus 5%**. Bias berlawanan; ini spesifik Cawang. Detail: `../reports/calib-compare/fusion-2026-11-26.md`.
+Hasil: GeoCalib `-13,1%`, AnyCalib `+11,4%`, rata-rata 50/50 **MAE 1,58%**, maks 3,92%, **8/8 lulus 5%**. Bias berlawanan; ini spesifik Cawang. Detail: `../reports/calib-compare/fusion-2026-11-26.md`.
+
+**Median VP + anchor `f` (27 Nov):** `scripts\calib_compare\cawang_median_vp_anchor.py` mendeteksi VP 8 frame, mengambil median VP `(651,48, 312,41)`, dan mengoreksi `f` per kamera. Hasil: `f` error median **0,88%** (anchor dash) / **1,44%** (anchor 50/50 buta); pose Δpitch **+0,052°**, Δyaw **+0,320°**; RMS fixed pose **1,37–1,44 px** vs dash **1,10–1,17 px**. GeoCalib mentah error `f` 12,9% tetapi tetap lulus gate pose 2° karena pitch Cawang rendah — gunakan gate `f` dan RMS. Detail: `../reports/calib-compare/median-vp-anchor-2026-11-27.md`.
 
 ## GeoCalib vs GT SVLD
 

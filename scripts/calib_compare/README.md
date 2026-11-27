@@ -145,6 +145,37 @@ Hasil 27 November 2026:
 
 Detail: `reports/cctv-solid-line-2026-11-27/README.md`.
 
+## Median VP + anchor `f` Cawang
+
+`cawang_median_vp_anchor.py` mendeteksi VP pada 8 median temporal Cawang,
+mengambil median VP, mengoreksi `f` GeoCalib dengan scale per kamera, lalu
+membandingkan `f`/pose dengan dash fit. Anchor bisa dash (oracle) atau 50/50
+(buta).
+
+```powershell
+$py = "C:\Users\omega\AppData\Local\Temp\opencode\geoenv\Scripts\python.exe"
+& $py scripts\calib_compare\cawang_median_vp_anchor.py --out out\calib-compare\fusion
+```
+
+RMS fixed pose untuk frame ber-anotasi dash (median2/t350/t500):
+
+```powershell
+node scripts\calib_compare\fit_compare_frame.mjs `
+  --frame median2_dash `
+  --dashes frames\dashes2.json `
+  --vp out\calib-compare\fusion\cawang_median_vp.json `
+  --geo out\calib-compare\fusion\anchor_dash_median2.json `
+  --out out\calib-compare\fusion\fits_anchor_dash_median2
+```
+
+Hasil 27 November 2026: median VP `(651,48, 312,41)`; pose `2,518°/0,607°` vs
+dash `2,466°/0,287°` (Δ `+0,052°/+0,320°`). `f` error median **0,88%** (anchor
+dash) dan **1,44%** (anchor 50/50 buta); 8/8 lulus f<5%. RMS fixed pose
+**1,374/1,443/1,398 px** vs dash **1,101/1,131/1,174 px**. GeoCalib mentah
+error `f` 12,9% tetapi masih lulus gate pose 2° karena pitch Cawang rendah;
+gunakan gate `f` dan RMS, bukan pose saja. Detail:
+`../reports/calib-compare/median-vp-anchor-2026-11-27.md`.
+
 ## Fusi `f` GeoCalib + AnyCalib
 
 `fuse_focal.py` menggabungkan `f` dari GeoCalib dan AnyCalib, memakai dash fit

@@ -229,3 +229,34 @@ Uji terpisah: delapan median temporal Cawang (7 lokal + `median2`), model defaul
 | Median Geo + median Any (agregat) | −0,81% | 0,81% | 0,81% | 1/1 |
 
 **Bacaan:** pada Cawang, bias GeoCalib dan AnyCalib hampir sama besar dan berlawanan arah, sehingga rata-rata 50/50 memberi `f` dalam 1,6% MAE — jauh lebih baik daripada masing-masing model. Bobot optimal 0,470/0,530 dan koreksi skala 1,006 menunjukkan ini bukan tuning. Namun ini **spesifik Cawang**: di SVLD fusi yang sama hanya 17/100 (GeoCalib 20/100). Jangan generalisasi 50/50 tanpa kalibrasi bobot per kamera. Untuk kalibrasi metrik penuh, `f` hasil fusi tetap harus dipasangkan dengan VP + anchor.
+
+---
+
+## 11. Median VP + anchor `f` (27 November 2026)
+
+Uji pipeline yang diusulkan dari diagnosis SVLD: **median VP temporal + koreksi skala `f` per kamera**, lalu bandingkan dengan dash fit Cawang. Detail: [`median-vp-anchor-2026-11-27.md`](median-vp-anchor-2026-11-27.md).
+
+Delapan median temporal, VP per frame stabil (`u=650,1–653,2`, `v=307,3–313,6`); median VP `(651,48, 312,41)`. Referensi dash fit: `f=1082,35`, pitch `2,466°`, yaw `0,287°` (bukan GT independen).
+
+| Varian | `|Δf|` median | `|Δf|` maks | Lulus f<5% | `|Δpitch|` median | `|Δyaw|` median | Lulus pose<2° |
+|---|---:|---:|---:|---:|---:|---:|
+| GeoCalib mentah | 12,92% | 15,57% | 0/8 | 0,425° | 0,410° | **8/8** |
+| 50/50 mentah | 1,34% | 3,92% | 8/8 | 0,066° | 0,324° | 8/8 |
+| Geo + dash scale | **0,88%** | 3,05% | 8/8 | **0,052°** | 0,320° | 8/8 |
+| Geo + blind scale | 1,44% | 4,02% | 8/8 | 0,077° | 0,326° | 8/8 |
+| Single anchor LOO | 1,50% | 5,50% | 55/56 | — | — | 56/56 |
+
+RMS fixed pose pada 3 frame ber-anotasi dash:
+
+| Frame | RMS dash | RMS anchor dash | RMS anchor buta |
+|---|---:|---:|---:|
+| median2 | 1,101 | **1,374** | 1,489 |
+| t350 | 1,131 | **1,443** | 1,569 |
+| t500 | 1,174 | **1,398** | 1,456 |
+
+**Bacaan:**
+
+1. **Median VP + anchor akurat relatif terhadap dash fit:** `f` ~1%, pitch ~0,05–0,1°, tetapi **yaw bias +0,32°**.
+2. **Anchor buta (50/50) juga bekerja** (`f` 1,44% median), karena bias `f` per kamera stabil. Satu frame anchor bisa mencapai 5,5%; gunakan beberapa frame.
+3. **GeoCalib mentah lolos gate pose 2°** (8/8) meskipun `f` error 12,9%, karena pitch Cawang hanya 2,4°. Gate `f<5%` dan RMS fixed pose (4,3–4,7 px vs 1,1–1,2 px) yang menangkap error.
+4. **Bias yaw +0,32°** adalah residual utama; perlu koreksi yaw per kamera jika target yaw ketat.

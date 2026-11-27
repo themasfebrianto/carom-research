@@ -1,0 +1,89 @@
+{
+  "reference": {
+    "f": 1082.35,
+    "pitch_deg": 2.466,
+    "yaw_deg": 0.287,
+    "note": "dash fit w=3.60 m; not independent GT"
+  },
+  "median_vp": {
+    "u": 651.4813924541919,
+    "v": 312.4081395752969
+  },
+  "pose_at_reference_f": [
+    2.517722921636344,
+    0.6071748586698855
+  ],
+  "scale_dash": 1.1483109929810702,
+  "scale_blind": 1.1368456932625126,
+  "variants": {
+    "geo_raw": {
+      "n": 8,
+      "f_median": 942.55825,
+      "df_pct_median": 12.91557721624243,
+      "df_pct_max": 15.570342310712796,
+      "pass_f_5pct": 0,
+      "dpitch_median": 0.42455996909936267,
+      "dpitch_max": 0.5152636018931509,
+      "dyaw_median": 0.41000868944524826,
+      "dyaw_max": 0.43185861492874794,
+      "pass_pose_2deg": 8
+    },
+    "mean_raw": {
+      "n": 8,
+      "f_median": 1076.1363999999999,
+      "df_pct_median": 1.3411096225805044,
+      "df_pct_max": 3.918085646971851,
+      "pass_f_5pct": 8,
+      "dpitch_median": 0.06628549946171058,
+      "dpitch_max": 0.15425183713033253,
+      "dyaw_median": 0.3236842175321932,
+      "dyaw_max": 0.3448818979774559,
+      "pass_pose_2deg": 8
+    },
+    "geo_dash_scale": {
+      "n": 8,
+      "f_median": 1082.35,
+      "df_pct_median": 0.8786777899403012,
+      "df_pct_max": 3.0484959417627593,
+      "pass_f_5pct": 8,
+      "dpitch_median": 0.051743430294264314,
+      "dpitch_max": 0.13078225844963143,
+      "dyaw_median": 0.3201797956575148,
+      "dyaw_max": 0.3392264817132182,
+      "pass_pose_2deg": 8
+    },
+    "mean_dash_scale": {
+      "n": 8,
+      "f_median": 1082.35,
+      "df_pct_median": 1.5460121969668577,
+      "df_pct_max": 3.3633097068364073,
+      "pass_f_5pct": 8,
+      "dpitch_median": 0.051766811647641964,
+      "dpitch_max": 0.13923017086096445,
+      "dyaw_median": 0.3201854241801764,
+      "dyaw_max": 0.3412621714134216,
+      "pass_pose_2deg": 8
+    },
+    "geo_blind_scale": {
+      "n": 8,
+      "f_median": 1071.5432871615508,
+      "df_pct_median": 1.4379073471266355,
+      "df_pct_max": 4.016507272305666,
+      "pass_f_5pct": 8,
+      "dpitch_median": 0.07710216899212163,
+      "dpitch_max": 0.15693489716328202,
+      "dyaw_median": 0.32629085595820595,
+      "dyaw_max": 0.3455284219366033,
+      "pass_pose_2deg": 8
+    }
+  },
+  "single_anchor_loo": {
+    "n": 56,
+    "df_pct_median": 1.5011214459594564,
+    "df_pct_max": 5.497053486151243,
+    "pass_f_5pct": 55,
+    "dpitch_max": 0.19796880406013884,
+    "dyaw_max": 0.35541596958722516,
+    "pass_pose_2deg": 56
+  }
+}
