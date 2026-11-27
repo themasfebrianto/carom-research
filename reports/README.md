@@ -5,9 +5,9 @@ Salinan kurasi dari folder kerja `out/`. Folder `out/` tetap di-`.gitignore` kar
 - Dikumpulkan: 19 November 2026
 - HEAD saat dikumpulkan: `a29c5dd` (plus perubahan lokal anchor container Cawang)
 - Format: UTF-8; tidak ada citra, video, bobot model, atau dataset
-- Jumlah: 102 berkas
+- Jumlah: 102 berkas (awal) + 11 berkas vehicle-ruler (27 November 2026)
 - Tambahan 26 November 2026: laporan fusi `f` GeoCalib+AnyCalib untuk Cawang dan untuk GT SVLD, beserta tabel ringkasannya
-- Tambahan 27 November 2026: laporan geolokasi CCTV Bina Marga + cakupan KartaView, laporan dash + garis solid untuk memutus degenerasi `f`, dan diagnosis kegagalan GeoCalib + garis VP per citra
+- Tambahan 27 November 2026: laporan geolokasi CCTV Bina Marga + cakupan KartaView, laporan dash + garis solid untuk memutus degenerasi `f`, diagnosis kegagalan GeoCalib + garis VP per citra, dan tool + pilot vehicle-ruler L1/L2 di SVLD
 
 ## Indeks
 
@@ -24,6 +24,7 @@ Salinan kurasi dari folder kerja `out/`. Folder `out/` tetap di-`.gitignore` kar
 | `svld-vp/` | **VP jalan vs SVLD GT**: 95/100 (f GT), median per scene 5/5; lebar lajur 2,7–3,56 m |
 | `svld-vp-failure-2026-11-27/` | **Diagnosis 53 kegagalan GeoCalib+VP**: 48 `f`-out, 5 outlier VP; bias `f` per kamera; scale+median VP 95/100 |
 | `svld-vehicle-anchor/` | **Kendaraan well-known sebagai anchor**: bus Higer 12,6 vs kelas 12 m; anotasi SVLD sirkular |
+| `svld-vehicle-ruler-2026-11-27/` | **Vehicle-ruler L1/L2**: 24 kandidat; pipeline simulasi 24/24; bbox 14,8% vs face, mask 7,1%; lane detector 3/22 <10%; clicker + evaluator |
 | `svld-calib-fusion/` | **AnyCalib + fusion f + lane fit**: AnyCalib 6/100; VP+Any 34/100; lane fit 0/45; fusi buta 17/100 vs GeoCalib 20/100, anchor per kamera 4,28% |
 | `svld-vehicle-vp/` | **PerspectiveFields + vehicle VP + 3D box PnP**: PF gagal 4/5 scene; deep_vp dicek; 3D box GT f 0,00-0,21% |
 | `3d-detector-survey/` | **Survey 3D detector**: CenterLoc3D (SVLD, no weights), BEVHeight++/CoBEV (pretrained roadside), Pro3D, MonoDGP, 3D-MOOD |
@@ -246,6 +247,21 @@ Ringkas: GeoCalib/AnyCalib hanya estimator intrinsik/pose awal; yaw tetap dari V
 | `streetview_summary.json` | Ringkasan cakupan 26 kamera |
 
 Hasil pokok: 258 kamera, 222 berkoordinat, 56 interpolasi KM, 20 clamped. Dalam Kota: 26 kamera, 21 `provisional_stationing`, 5 `interpolated_km`; offset existing vs centerline OSM median 21,8 m, maks 133,4 m. KartaView 26/26 usable, median 2,1 m, maks 6,5 m, semua 2020 `PLANE`. Panorama Cawang 2023 berjarak 210 m; SIFT ~25 inlier, LoFTR ~12. **Street view tidak cukup untuk `f`/pose.** Angka 115/158 inlier sebelumnya tidak valid karena thumbnail perspektif diperlakukan sebagai equirect.
+
+### `svld-vehicle-ruler-2026-11-27/`
+
+| Berkas | Isi |
+|---|---|
+| `README.md` | Laporan lengkap: 24 kandidat, protokol 5 titik, validasi pipeline, ablasi bbox/mask, detektor lajur, batasan |
+| `candidates.csv` | 24 kandidat: scene, kelas, bbox, jarak, sudut, `W_preset`, path citra/anotasi/kalibrasi |
+| `auto_results.csv` | 24 baris pilot: `V_face`, `V_bbox`, `V_mask`, rasio, lane, `w_formula`, `w_ref`, error |
+| `auto_summary.json` | Ringkasan ablasi body source, formula, dan lane detector |
+| `sim_results.csv` | 24 baris validasi pipeline dengan titik simulasi + lane oracle |
+| `sim_summary.json` | Ringkasan L1/L2 simulasi |
+| `annotations_sim.csv` | Titik simulasi (bukan anotasi independen) |
+| `overlays/` | Contoh overlay 4 anchor |
+
+Hasil pokok: pipeline simulasi 24/24, `eW` median 0,37%, `ew` median 0,34%. Pada citra nyata, bbox 2D 14,8% dan YOLO mask 7,1% lebih lebar dari muka kendaraan; formula konsisten 22/22 <5%, tetapi detektor lajur hanya 3/22 dalam 10% prior. **L1/L2 final menunggu anotasi manual.**
 
 ### `cctv-solid-line-2026-11-27/`
 

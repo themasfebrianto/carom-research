@@ -352,6 +352,38 @@ py scripts\svld_box_calib_scene.py --per-scene 30 --trials 5 --out out\svld_box_
 
 Hasil: AnyCalib **6/100** (median Δf 18,2%), GeoCalib 20/100; fusi buta 50/50 **17/100** (MAE 19,53% vs GeoCalib 19,35%), karena galat kedua model berkorelasi 0,929 dan biasnya searah. Setelah skala per kamera di-anchor dengan satu frame ber-`f`, ensemble memberi MAE **4,28%** dan **71/95** lulus sebagai **stabilitas relatif** (bukan `f` absolut). VP + Any **34/100**, VP + Geo **47/100**, VP + GT **95/100**. Lane fit identifiabel di sintetis, tetapi **0/45** nyata karena lane extraction/assignment. Vertical VP otomatis: 0cam **2/20** OK, 1cam 18/20 OK tetapi hanya **4/18** lulus; gravitasi GeoCalib + VP hanya `session0_centre`. GlobustVP: 0cam 2/3, 1cam 3/3, tetapi vertikal 24–35° / 0 inlier; tidak turnkey. Detail: `../reports/svld-calib-fusion/README.md`.
 
+### Vehicle-ruler L1/L2 (SVLD)
+
+Menguji apakah kendaraan dengan lebar pabrikan bisa menjadi anchor lebar lajur:
+
+```text
+w_lane = W_spec × L_px / V_px
+```
+
+`W_spec` = lebar bodi tanpa spion; `V_px` = lebar muka kendaraan di baris kontak; `L_px` = lebar lajur di baris yang sama.
+
+```powershell
+# Kandidat + crop bergrid
+& "C:\Users\omega\AppData\Local\Temp\opencode\geoenv\Scripts\python.exe" `
+  scripts\svld_vehicle_ruler.py candidates
+
+# Cek pipeline dengan titik simulasi (bukan L1/L2 final)
+& "C:\Users\omega\AppData\Local\Temp\opencode\geoenv\Scripts\python.exe" `
+  scripts\svld_vehicle_ruler.py simulate
+& "C:\Users\omega\AppData\Local\Temp\opencode\geoenv\Scripts\python.exe" `
+  scripts\svld_vehicle_ruler.py eval --ann out\svld_vehicle_ruler\annotations_sim.csv
+
+# Anotasi manual 5 titik + model/spec (OpenCV)
+& "C:\Users\omega\AppData\Local\Temp\opencode\geoenv\Scripts\python.exe" `
+  scripts\svld_vehicle_ruler.py annotate --ids 0cam_bus_000667,1cam_bus_002664
+
+# Pilot otomatis bbox/mask/lane detector (butuh ultralytics)
+& "D:\Kerjaan\LearnPinhole\backend\.venv\Scripts\python.exe" `
+  scripts\svld_vehicle_ruler_auto.py --limit 24 --imgsz 1280
+```
+
+Hasil: 24 kandidat; pipeline simulasi 24/24 (`eW` 0,37%, `ew` 0,34%). Pada citra nyata, bbox 2D **14,8%** dan YOLO mask **7,1%** lebih lebar dari muka kendaraan; formula konsisten **22/22 <5%** terhadap titik lajur yang sama, tetapi detektor lajur otomatis hanya **3/22 <10%** terhadap prior. **L1/L2 final menunggu anotasi manual.** Detail: `../reports/svld-vehicle-ruler-2026-11-27/README.md`.
+
 ## CCTV Bina Marga, street view, dan garis solid
 
 Geolokasi CCTV dari KM + arah A/B dan centerline OSM:

@@ -1,0 +1,101 @@
+{
+  "0cam/sim_face": {
+    "n": 4,
+    "eW_median_pct": 0.223,
+    "eW_p90_pct": 0.501,
+    "eW_pass3": 4,
+    "ew_median_pct": 0.227,
+    "ew_p90_pct": 0.51,
+    "ew_pass5": 4
+  },
+  "1cam/sim_face": {
+    "n": 4,
+    "eW_median_pct": 0.379,
+    "eW_p90_pct": 0.975,
+    "eW_pass3": 4,
+    "ew_median_pct": 0.387,
+    "ew_p90_pct": 0.953,
+    "ew_pass5": 4
+  },
+  "Bus/sim_face": {
+    "n": 2,
+    "eW_median_pct": 0.157,
+    "eW_p90_pct": 0.203,
+    "eW_pass3": 2,
+    "ew_median_pct": 0.17,
+    "ew_p90_pct": 0.242,
+    "ew_pass5": 2
+  },
+  "Car/sim_face": {
+    "n": 18,
+    "eW_median_pct": 0.346,
+    "eW_p90_pct": 0.92,
+    "eW_pass3": 18,
+    "ew_median_pct": 0.343,
+    "ew_p90_pct": 0.797,
+    "ew_pass5": 18
+  },
+  "Truck/sim_face": {
+    "n": 4,
+    "eW_median_pct": 1.097,
+    "eW_p90_pct": 1.952,
+    "eW_pass3": 4,
+    "ew_median_pct": 0.938,
+    "ew_p90_pct": 1.641,
+    "ew_pass5": 4
+  },
+  "all/sim_face": {
+    "n": 24,
+    "eW_median_pct": 0.37,
+    "eW_p90_pct": 1.198,
+    "eW_pass3": 24,
+    "ew_median_pct": 0.343,
+    "ew_p90_pct": 1.082,
+    "ew_pass5": 24
+  },
+  "oblique/sim_face": {
+    "n": 4,
+    "eW_median_pct": 0.99,
+    "eW_p90_pct": 1.849,
+    "eW_pass3": 4,
+    "ew_median_pct": 0.839,
+    "ew_p90_pct": 1.507,
+    "ew_pass5": 4
+  },
+  "primary/sim_face": {
+    "n": 20,
+    "eW_median_pct": 0.301,
+    "eW_p90_pct": 0.851,
+    "eW_pass3": 20,
+    "ew_median_pct": 0.294,
+    "ew_p90_pct": 0.714,
+    "ew_pass5": 20
+  },
+  "session0_centre/sim_face": {
+    "n": 5,
+    "eW_median_pct": 0.695,
+    "eW_p90_pct": 1.896,
+    "eW_pass3": 5,
+    "ew_median_pct": 0.667,
+    "ew_p90_pct": 1.606,
+    "ew_pass5": 5
+  },
+  "session0_right/sim_face": {
+    "n": 5,
+    "eW_median_pct": 0.26,
+    "eW_p90_pct": 0.589,
+    "eW_pass3": 5,
+    "ew_median_pct": 0.259,
+    "ew_p90_pct": 0.569,
+    "ew_pass5": 5
+  },
+  "session6_right/sim_face": {
+    "n": 6,
+    "eW_median_pct": 0.521,
+    "eW_p90_pct": 1.015,
+    "eW_pass3": 6,
+    "ew_median_pct": 0.467,
+    "ew_p90_pct": 0.788,
+    "ew_pass5": 6
+  }
+}

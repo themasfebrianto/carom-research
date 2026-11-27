@@ -198,6 +198,17 @@ Syarat agar combo ini cukup:
 - **Sebab:** model learned memakai prior FOV; 0cam 19,4° hFOV jauh di luar distribusi. VP jalan hanya memberi 2 constraint (pitch, yaw); `f` butuh cue kedua (lebar lajur, VP kedua, objek known-width, dash+solid).
 - Detail: `reports/svld-vp-failure-2026-11-27/README.md`; tabel per citra: `diagnosis.csv`, `failure_table.md`.
 
+### 4.2.6 Vehicle-ruler L1/L2 di SVLD (27 Nov)
+
+Menguji `w_lane = W_spec × L_px / V_px` dengan kendaraan nyata + lebar pabrikan. Tool: `scripts/svld_vehicle_ruler.py` (kandidat, simulate, eval, clicker) dan `scripts/svld_vehicle_ruler_auto.py` (pilot YOLO-seg + lane detector).
+
+- **24 kandidat** (20 primer ≤10,2°, 4 oblique 12,7–14,5°); bus/truk besar diambil dari trainval karena 100 citra sampel didominasi mobil.
+- **Validasi pipeline** dengan titik muka simulasi + lane oracle: 24/24, `eW` median **0,37%**, `ew` median **0,34%**; ini cek implementasi, bukan akurasi fisik.
+- **Ablasi sumber lebar bodi** pada citra nyata: bbox 2D **14,8%** (p90 44,3%) dan YOLO mask **7,1%** (p90 27,1%) lebih lebar dari muka kendaraan. Rasio bbox/face 1,06 pada 0–3° menjadi 1,32 pada 6–10°; truk 1,51. Anotasi muka kendaraan wajib.
+- **Formula** konsisten **22/22 <5%** (median 0,79%, p90 3,0%) terhadap `w_ref` dari titik lajur yang sama.
+- **Detektor lajur otomatis tidak layak untuk lebar absolut**: hanya **3/22 <10%** terhadap prior scene (median error 134,5%). Lane boundary manual diperlukan.
+- **L1/L2 final menunggu anotasi manual** 5 titik per kendaraan + datasheet model. Detail: `reports/svld-vehicle-ruler-2026-11-27/README.md`.
+
 ### 4.3 SVLD-3D
 
 - Test set: 2.237 citra, 8.142 objek; **7.396 Car, 745 Bus, 1 Truck**.

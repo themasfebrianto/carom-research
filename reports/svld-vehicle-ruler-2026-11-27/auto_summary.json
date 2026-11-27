@@ -1,0 +1,48 @@
+{
+  "n": 24,
+  "e_face_pct": {
+    "n": 24,
+    "median": 0.509,
+    "p90": 1.555,
+    "max": 2.811
+  },
+  "e_bbox_pct": {
+    "n": 24,
+    "median": 14.754,
+    "p90": 44.259,
+    "max": 58.75
+  },
+  "e_mask_pct": {
+    "n": 24,
+    "median": 7.062,
+    "p90": 27.145,
+    "max": 45.635
+  },
+  "ratio_bbox": {
+    "n": 24,
+    "median": 1.147,
+    "p90": 1.441,
+    "max": 1.589
+  },
+  "ratio_mask": {
+    "n": 24,
+    "median": 1.077,
+    "p90": 1.28,
+    "max": 1.456
+  },
+  "e_formula_pct": {
+    "n": 22,
+    "median": 0.788,
+    "p90": 2.999,
+    "max": 4.412
+  },
+  "e_prior_pct": {
+    "n": 22,
+    "median": 134.516,
+    "p90": 242.744,
+    "max": 298.397
+  },
+  "lane_ok": 22,
+  "lane_pass_formula_5pct": 22,
+  "lane_pass_prior_10pct": 3
+}
